@@ -383,65 +383,7 @@ def print_short_help():
 
 def print_long_help():
     print(__doc__)
-    '''animelog by MDP, logs your series, options:
-    --[f]oo means type either -f or --foo
-    
-    '-i'                interactive mode, does not autoclose
-    "series - 01.mkv"   adds that episode of that series to the log 
-                        of the current watchers
-                        if it does not have a numbering, 
-                        it assumes its a movie and adds it to the finished
-    
-    
-    [Watcher Manipulation]
-    --[s]et john bert      sets current watchers to john and bert
-    --[c]urrent            returns current watchers
-    
-    [Playing]
-    --[p]lay_next title  plays next episode of title (for the current watchers)
-    --play_[l]ast title    plays last played episode of title (for the current watchers)
-    
-    [Reporting]
-    --[w]atching           get series current watchers are watching   
-    --[w]atching john bert get series john and bert are both watching, 
-                        but nobody else is 
-    --[n]ext               get the next unwatched episode if it has aired, 
-                        for all in -watching.
-    --[n]ext john bert   same as above except for all in -watching john bert
-    
-    
-    --new                gets the most recently aired not yet watched episode, 
-                        for all in -watching
-    --las[t] title         get most recently watched episode of title
-    
-    
-    --finished           return the series current_watchers have finished
-
-    --finished bill bob  returns the series bill and bob have finished
-    --[a]iring             returns airtimes for next episode for current watchers
-    --[a]iring bill bob 
-    
-    --[f]ilter          when used in combination of one of the above, only reports on shows that are currently airing
-                        can used as animelog -fn to get --next --filter
-    
-
-    
-    [Manual logging]
-    --drop s1 s2 		drops these series from current_watchers
-    --dropfuzzy series1  drops series with fuzzy matching        
-    --finish s1 s2       adds these series to the finished 
-                        list for the current watchers 
-                        (and removes from the watching list), 
-    --finishfuzzy s1 s2
-                        matches fuzzily
-    --simulate filename returns parsed filename
-    
-    
-    note: the --new, --airing, --filter and --next require an internet connection 
-    (as does the automatically finishing of series)
-    the --play_next option does not require internet connection, it checks the harddrive
-    
-    '''
+ 
 short_command_set = sorted(('-h', '-w', '-t','-s','-n','-i','-a','-p', '-f'))
 long_command_set = sorted(('--help', '--watching', '--last', '--set', '--drop', '--dropfuzzy', '--finish', '--finishfuzzy', '--finished','--new', '--airing', '--play_next', '--play_last', '--simulate, --filter'))
 

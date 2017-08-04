@@ -42,7 +42,7 @@ def get_token():
         access.raise_for_status()
         raise RuntimeError("Could not connect to server!")
 
-def is_airing(title, token):
+def is_airing(title):
     model = find_by_title(title)
     return model and model.get("airing_status") == 'currently airing'
 
