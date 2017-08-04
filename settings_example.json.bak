@@ -1,0 +1,9 @@
+{
+ "video_path": "/home/user/Videos/", 
+ "client": [
+  "uri":"YourUri",
+  "name":"YourName",
+  "id":"YourID",
+  "secret":"YourSecret"
+ ]
+}
