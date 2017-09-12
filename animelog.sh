@@ -1,12 +1,11 @@
 #!/bin/bash
 filename="$1"	
-location=${0/animelog.sh}
-if [ -f "$filename" ] #test if this is a file
-then
-	mpv "$filename" > /dev/null 2>&1 & disown
-	python2 "$location""animelog.py" "$filename"
+location=$(dirname $(realpath $0))
+
+if [ -f "$filename" ]
+   then
+   python2 "$location"/"animelog.py" "$@" & disown
+   mpv "$filename">/dev/null 2>&1
 else
-	python2 "$location""animelog.py" "$@"
+    python2 "$location"/"animelog.py" "$@"
 fi
-
-
