@@ -301,8 +301,9 @@ def get_logstream(filterobj, this_stream = None):
         this_stream = get_unfiltered_logstream(filterobj)
  
     stream = this_stream
-    for keyname, function in key_func_pairs:
-        if filterobj[keyname]:
+    for item in static_flags:
+        function = item[0]
+        if filterobj[function]:
             stream = function(stream, filterobj)
     #stream = reduce((lambda stream, key_func: check_stream(key_func[1](stream, filterobj), key_func[0]) if filterobj[key_func[0]] else stream),key_func_pairs, this_stream)
            
@@ -328,10 +329,9 @@ def get_unfiltered_logstream(filterobj):
         yield item
         
 def filter_by_titles(stream, filterobj):
-    if filterobj["filter_by_titles_strict"]:
-        return itertools.ifilter(lambda x:x[0] in map(lambda x : parse_title(x, skip_number = True)[0],filterobj["filter_by_titles"]), stream)
-    else:
-        return itertools.ifilter(lambda x:any((True for title in filterobj["filter_by_titles"] if parse_title(title, skip_number = True)[0] in x[0])), stream)
+    #if filterobj["filter_by_titles_strict"]:
+    #   return itertools.ifilter(lambda x:x[0] in map(lambda x : parse_title(x, skip_number = True)[0],filterobj["filter_by_titles"]), stream)
+        return itertools.ifilter(lambda x:any((True for title in filterobj[filter_by_titles] if parse_title(title, skip_number = True)[0] in x[0])), stream)
 def filter_by_watchers(stream, filterobj):
     def matches(x):
         return set(x[1]['watchers']) == set(filterobj["filter_by_watchers"])
@@ -449,6 +449,8 @@ def print_long_help():
 def check_option(short_option, long_option, return_arguments = False):
     if not short_option:
         short_option = '_______________________________________'
+    if not long_option:
+        long_option = '_______________________________________'
     for option in ["-" + short_option,
                    "--" + long_option]:
         if option in sys.argv:
@@ -469,7 +471,8 @@ def check_option(short_option, long_option, return_arguments = False):
 def main():
     #old_path = os.path.cwd()
     os.chdir(os.path.abspath(__file__).rpartition(os.path.sep)[0])
-    command = sys.argv[1]
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
     
     if len(sys.argv) == 1 or sys.argv[-1] in {'-h', '/?', ''}:
         print_short_help()
@@ -488,35 +491,23 @@ def main():
         return_value = check_option(options[0], options[1], arguments)
         if return_value:
             action(return_value)
-    for key, options in static_flags:
+    for item in static_flags:
+        key = item[0]
         if not filterobj[key]:
-            filterobj[key] = check_option(options[0], options[1], isinstance(filterobj[key], list))
-    
+            filterobj[key] = check_option(item[1][0], item[1][1], item[2])
+    errprint(filterobj)
     if any(filterobj.values()):
-        filterobj['report'] = not filterobj['play']
+        filterobj[print_from_stream] = not filterobj[play_from_stream]
         stream = get_logstream(filterobj)
+    return filterobj
     #watchers = get_current_watchers()
     #log_anime(os.path.split(command)[-1], watchers)
     #os.chdir(old_path)
     #subprocess.call(["C:\Program Files\Combined Community Codec Pack\MPC\mpc-hc.exe", sys.argv[1]])
 
-__filter_settings__ =  {   "hold":False,
-                    "filter_by_airing":False, 
-                    "filter_by_unwatched_aired": False, 
-                    "filter_by_titles": [],
-                    "filter_by_titles_strict": False,
-                    "filter_by_watchers": [],
-                    "as_successor": False,
-                    "as_latest_unwatched":False,
-                    "as_title_epnr": False,
-                    "exclude_watchers": [],
-                    "lucky":False,
-                    "play": False,
-                    "report":False,
-                    "next_airdate":False
-                }
 
-    
+
+
 preprocess_flags = [
         (set_current_watchers, ('s', 'set'), True),
         ((lambda x: __filter_settings__.__setitem__("filter_by_watchers", get_current_watchers())),
@@ -530,11 +521,26 @@ preprocess_flags = [
         ]
         #((lambda x: filterobj.__setitem__("filter_by_titles", x)), ('', 'drop'),True)
 
+static_flags =  [
+                 (filter_by_titles, ('t', 'title'), True),
+                 (filter_by_watchers, ('w', 'watchers'), True),
+                 (filter_by_airing, ('a', 'airing'), False),
+                 (filter_by_unwatched_aired, ('u', 'unwatched'), False),
+                 (stream_as_successor, ('n', 'next'), False),
+                 (stream_as_latest_unwatched, ('l', 'latest'), False),
+                 (stream_find_next_airdate, ('d', 'date'), False),
+                 (stream_as_title_epnr, ('e', 'episode'), False),
+                 (stream_find_file, ('p', 'play'), False),
+                 (filter_by_lucky, ('L', 'Lucky'), False),
+                 (play_from_stream, ('p', 'play'), False),
+                 (print_from_stream, ('', ''), False)
+                ]
 
-static_flags =  [("hold", ("i", "interactive")), 
-                     ("filter_by_airing", ('a', 'airing')),
+__filter_settings__ = { item[0] : [] if item[2] else False for item in static_flags}
+
+'''                     ("filter_by_airing", ('a', 'airing')),
                     ("filter_by_unwatched_aired", ('u',  'unwatched')),
-                    ('filter_by_titles', ('t', 'title')), 
+                    
                     ('filter_by_watchers',( 'w', 'watchers')),
                     ('as_successor',('n', 'next')),
                     ("as_latest_unwatched", ('l', 'latest')),
@@ -543,8 +549,8 @@ static_flags =  [("hold", ("i", "interactive")),
                     ("lucky",("L", "lucky")),
                     ("next_airdate",("d", "date"))
                 ]
-
-key_func_pairs = [("filter_by_titles", filter_by_titles),
+'''
+'''key_func_pairs = [("filter_by_titles", filter_by_titles),
                        ("exclude_watchers", stream_exclude_watchers),
                        ("filter_by_watchers", filter_by_watchers),
                        ("filter_by_airing", filter_by_airing),
@@ -558,6 +564,6 @@ key_func_pairs = [("filter_by_titles", filter_by_titles),
                        ("play", play_from_stream),
                        ("report", print_from_stream)
                      ]
-
+'''
 if __name__ == '__main__':
-    main()
+    a = main()
