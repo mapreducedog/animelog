@@ -13,7 +13,7 @@ synopsis:
 
 usage:
     <filename>
-        log the episode with the current watchers and play this episode. If the episode is the final episode of a title, and it exists in the anilist database, the show is automatically marked as finished. Note: This automatically marking as finished requires an internet connection
+        log the episode with the current watchers and play this episode. If the episode is the final episode of a title, and it exists in the database_reader database, the show is automatically marked as finished. Note: This automatically marking as finished requires an internet connection
     
     [Modifying Flags]
     -i, --interactive:
@@ -66,31 +66,34 @@ FILES:
 '''
 
 from __future__ import print_function
+from copy import deepcopy
 import sys
+import random
 import re
 import time
 import itertools
 import json
 import os
 import glob
-import anilist
+import database_reader
+import database_updater
 __autocompletion__ = True
 __filter_by_airing__ = False
+
+
+def errprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 def successor(ep):
     if isinstance(ep, int):
         return ep + 1
     if hasattr(ep, '__iter__'):
         return ep[:-1] + [ep[-1] + 1]
-def is_successor(ep, rep):
-    if isinstance(ep, int):
-        return rep == ep + 1
-    else:
-        return tuple(rep) == tuple(ep[:-1] + [ep[-1] + 1,]) or tuple(rep) == tuple(ep[:-2] + [ep[-2] + 1, 0])
 def set_current_watchers(watchers):
     settings = get_settings()
     settings['current_watchers'] = list(watchers)
     write_settings(settings)
+    update_autocompletion(watchers)
 def write_settings(data):
     with open('settings.json', 'w') as settingsfile:
         json.dump(data, settingsfile, indent = 1)
@@ -148,7 +151,7 @@ def parse_title(title, skip_number = False):
         return title.strip(), None 
 
 def get_created_watchers():
-    return list(reduce(lambda old, new: old | set(new.keys()),get_log().values(), set()))
+    return list(reduce(lambda old, new: old | set(new),(title_value['watchers'] for title_value in get_log().itervalues()), set()))
 
 def get_log():
     with open('log.json', 'r') as fp:
@@ -161,14 +164,26 @@ def save_log(data):
     if __autocompletion__:
         update_autocompletion(get_current_watchers())
 def update_autocompletion(watchers):
-    shows = sorted(map(lambda x:x[0].replace(" ", "_") , currently_watching(watchers)))
+    shows = sorted(map(lambda x:x.replace(" ", "_") , currently_watching(watchers)))
+    short_command_set, long_command_set = [filter(None, prep) + filter(None, stat) for prep, stat in zip(zip(*zip(*static_flags)[1]),zip(*zip(*preprocess_flags)[1]))] 
+    short_command_set = [x for x in sorted(short_command_set)]
+    long_command_set = ['--'+x for x in sorted(long_command_set)]
+    
     filetext = '''_animelog() 
 {
+    select_successors() { 
+        for letter in ${shortopts}
+            do
+                if [[ "${cur}" != *${letter}* ]]
+                    then echo ${letter}
+                fi
+        done
+        }
     local cur prev shows longopts shortopts watchers
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"''' +  '''
-    shows='{}' '''.format(" ".join(shows)) + '''
+    shows="{}" '''.format(" ".join(shows)) + '''
     longopts="{}"'''.format(" ".join(long_command_set))  + '''
     shortopts="{}"'''.format(" ".join(short_command_set)) + r'''
     watchers="{}"'''.format(" ".join(get_created_watchers())) + r'''
@@ -176,18 +191,20 @@ def update_autocompletion(watchers):
         COMPREPLY=( $(compgen -W "${longopts}" -- ${cur}) )
         return 0
     elif [[ ${cur} = -* ]]; then  #first empty command
-        COMPREPLY=( $(compgen -W "${shortopts}" -- ${cur}) )
+        flatshortopts=$(select_successors)
+        COMPREPLY=( $(compgen -W "${flatshortopts}" -P ${cur}) )
+        #COMPREPLY=( $(compgen -W "${shortopts}" -- ${cur}) )
         return 0
     elif [[ ${prev} == animelog ]] || [[ ${prev} == --simulate ]]; then
 	#we supply a filename here
         return 0
-    elif [[ ${prev} == -s ]] || [[ ${prev} == --set ]] ; then
+    elif [[ ${prev} == -!(-)*s* ]] || [[ ${prev} == --set ]] || [[ ${prev} == -!(-)*w* ]] || [[ ${prev} == --watchers ]] ; then
     	#supply a watcher
     	COMPREPLY=( $(compgen -W "${watchers}" -- ${cur}) )
    	return 0
     else
         COMPREPLY=( $(compgen -W "${shows}" -- ${cur}) )
-        return 0
+        return 0 
     fi
 }
 complete -o default -F _animelog animelog
@@ -213,7 +230,7 @@ def log_anime(title, watchers):
         add_to_finished(title, watchers)
         return
     try:
-        if (title, ep_nr) in anilist.get_total_episodes([title]):
+        if (title, ep_nr) in database_reader.get_total_episodes([title]):
             drop_title(title, watchers)
             add_to_finished(title, watchers)
             return
@@ -224,11 +241,12 @@ def log_anime(title, watchers):
 def add_to_log(title, ep_nr, watchers):
     log = get_log()
     if title not in log:
-        log[title] = {}
+        log[title] = {'watchers':{}}
     for watcher in watchers:
         if (watcher not in log[title]) or (log[title][watcher] < ep_nr):
-            log[title][watcher] = ep_nr
+            log[title]['watchers'][watcher] = ep_nr
     save_log(log)
+    
     
 def drop_title(title, watchers, save = False):
     log = get_log()
@@ -236,132 +254,175 @@ def drop_title(title, watchers, save = False):
         finish_log = get_finished()
     title, _ = parse_title(title, skip_number = True)
     if title in log:
-        for watcher in set(watchers) & set(log[title].keys())   :
+        for watcher in set(watchers) & set(log[title]['watchers'])   :
             del log[title][watcher]
             if save:
-                finish_log[title] = finish_log.get(title, []) + [watcher]
-        if not log[title]:
+                finish_log[title]['watchers'] = finish_log.get(title, {}).get('watchers', []) + [watcher]
+        if not log[title]['watchers']:
             del log[title]
         save_log(log)
         if save:
             save_finished(finish_log)
-    
+    else:
+        errprint("Couldn't {} {}, no exactly matching title found".format("finish" if save else "drop", title))
 
 def drop_fuzzy(title, watchers, save = False):
     log = get_log()
+    deleted_any = False
     if save:
         finish_log = get_finished()
     title, _ = parse_title(title, skip_number = True)
     for series_title in log.copy():
         if title in series_title:
-            for watcher in set(watchers) & set(log[series_title].keys()):
-                del log[series_title][watcher]
+            for watcher in set(watchers) & set(log[series_title]['watchers']):
+                del log[series_title]['watchers'][watcher]
+                deleted_any = True
                 if save:
-                    finish_log[series_title] = finish_log.get(series_title, []) + [watcher]
-        if not log[series_title]:
+                    finish_log[series_title]['watchers'] = finish_log.get(series_title, {}).get('watchers', []) + [watcher]
+        if not log[series_title]['watchers']:
             del log[series_title]
     if save:
         save_finished(finish_log)
     save_log(log)
-                
-def current_episode(title):
-    log = get_log()
-    title, _ = parse_title(title, skip_number = True)
-    for series in log:
-        if title in series:
-            for watcher in log[series]:
-                yield series, watcher, log[series][watcher]
-def print_current_episode(title):
-    for series,watcher,episode in current_episode(title):
-        print(watcher, series,':',episode)
-def get_next_airing(watchers):
-    for result in anilist.get_next_airing_times(itertools.imap(lambda x:x[0], currently_watching(watchers))):
-        yield result
-        
-def print_next_airing(watchers):
-    for name, ep, date in get_next_airing(watchers):
-        print(name, ep)
-        print('\t', time.ctime(date))
-
-def print_finished(watchers):   
-    finished = get_finished()
-    for title, watched_this in finished.iteritems():
-        if set(watched_this) & set(watchers):
-            print(title, watched_this)
-
-
+    if not deleted_any:
+        errprint("Couldn't {} {}, no matching title found".format("finish" if save else "drop", title))
+def print_from_stream(stream, filterobj):
+    for item in stream:
+        title, value = item
+        print(title, value)
 def currently_watching(watchers):
-    if not __filter_by_airing__:
-        return currently_watching_unfiltered(watchers)
-    return itertools.ifilter(lambda x: anilist.is_airing(x[0]), currently_watching_unfiltered(watchers))
-
-def currently_watching_unfiltered(watchers):
-    log = get_log()
-    for title, watching_this in log.iteritems():
-        if set(watchers) == set(watching_this):
-            yield title, min(watching_this.values())
-
-
-
-def print_currently_watching(watchers):
-    for title, ep_nr in currently_watching(watchers):
-        print(title, ' - ',ep_nr)
-    #raw_input('press any key to close')
+    filterobj = deepcopy(__filter_settings__)
+    filterobj['filter_by_watchers'] = watchers
+    return (x[0] for x in get_logstream(filterobj))
     
-def check_new(watchers, as_next = False, check_for = None):
-    prev_ep = dict(currently_watching(watchers))
-    if check_for is not None:
-        prev_ep = {x:prev_ep[x] for x in check_for}
-    for title, ep_nr in anilist.get_latest_episode(prev_ep.keys()):
-        if ep_nr > prev_ep[title]:
-            if as_next:
-                yield title, prev_ep[title] + 1
-            else:
-                yield title, ep_nr
-def print_new(watchers, as_next = False):
-    for title, ep_nr in check_new(watchers, as_next = as_next):
-        print(title, ep_nr)
-def play_title(title, watchers, play_next = False):
-    '''finds the last or next episode of title for watchers and plays it'''
-    ep = dict(currently_watching(watchers))[title]
-    if hasattr(ep, '__iter__'):
-        is_target = is_successor if play_next else lambda ep, rep: tuple(ep) == tuple(rep)
+
+def get_logstream(filterobj, this_stream = None):
+    if this_stream is None:
+        this_stream = get_unfiltered_logstream(filterobj)
+ 
+    stream = this_stream
+    for keyname, function in key_func_pairs:
+        if filterobj[keyname]:
+            stream = function(stream, filterobj)
+    #stream = reduce((lambda stream, key_func: check_stream(key_func[1](stream, filterobj), key_func[0]) if filterobj[key_func[0]] else stream),key_func_pairs, this_stream)
+           
+    return stream
+
+def check_stream(stream, name):
+    print(name)
+    for item in stream:
+        print(item)
+        yield item
+    
+def filter_by_lucky(stream, filterobj):
+    stream = list(stream)
+    found_titles = filter(lambda x: x[1].get('filename', ''), stream)
+    if not found_titles:
+        return stream
+    your_show_today = random.choice(found_titles)
+    return [your_show_today,]
+
+def get_unfiltered_logstream(filterobj):
+    log = get_log()
+    for item in log.iteritems():
+        yield item
+        
+def filter_by_titles(stream, filterobj):
+    if filterobj["filter_by_titles_strict"]:
+        return itertools.ifilter(lambda x:x[0] in map(lambda x : parse_title(x, skip_number = True)[0],filterobj["filter_by_titles"]), stream)
     else:
-        is_target = is_successor if play_next else lambda ep, rep: ep == rep
+        return itertools.ifilter(lambda x:any((True for title in filterobj["filter_by_titles"] if parse_title(title, skip_number = True)[0] in x[0])), stream)
+def filter_by_watchers(stream, filterobj):
+    def matches(x):
+        return set(x[1]['watchers']) == set(filterobj["filter_by_watchers"])
+    return itertools.ifilter(matches, stream)
+def filter_by_airing(stream, filterobj):
+    return itertools.ifilter(lambda x: database_reader.is_airing(x[0]), stream)
+def stream_exclude_watchers(stream, filterobj):
+    for item in stream:
+        title, watchers_eps = item
+        yield (title, {watcher:ep for watcher, ep in watchers_eps if watcher not in filterobj["exclude_watchers"]})
+
+def filter_by_unwatched_aired(stream, filterobj):
+    for title, values in stream:
+        aired_eps = database_reader.get_aired_episodes(title)
+        try:
+            if aired_eps and  (max(aired_eps) > min(values['watchers'].values())): #is in database_reader and (aired_ep1, aired_ep2 ...) > min((title, {watcher:ep_nr, ... })[1].values()))
+                yield (title, values)
+        except ValueError:
+            print("error on", item)
+def stream_find_next_airdate(stream, filterobj):
+    for title, values in stream:
+        airdate = database_reader.get_next_airing_time_single(title)
+        if airdate:
+            values['airing'] = (airdate[0], time.ctime(airdate[1]))
+            yield (title, values)
+            
+def stream_as_successor(stream, filterobj):
+    for item in stream:
+        title, watchers = item[0], item[1]['watchers']
+        right_item = item[1].copy()
+        right_item['watchers'] = {watcher: successor(episode) for watcher, episode in watchers.iteritems()}
+        yield (title, right_item)
+def stream_as_latest_unwatched(stream, filterobj):
+    for item in stream:
+        title, watchers_eps = item[0], item[1]['watchers']
+        aired_eps = database_reader.get_aired_episodes(title)
+        if aired_eps:
+            latest = max(aired_eps)
+            if latest > min(watchers_eps.values()):
+                right_item = item[1].copy()
+                right_item['watchers'] = {watcher : latest for watcher in watchers_eps.iteritems()}
+                yield (title, right_item)
+                
+def stream_find_file(stream, filterobj):
+    for title, values in stream:
+        episode = min(values['watchers'].values())
+        if hasattr(episode, '__iter__'):
+            episode = tuple(episode)
+        for filename in itertools.chain(glob.glob(os.path.join(get_video_path(), '*')), 
+            glob.glob(os.path.join(get_video_path(), '*', '*'))):
+            if not os.path.isfile(filename):
+                continue
+            rtitle, repisode = parse_title(filename)
+            if rtitle == title and repisode == episode:
+                values['filename'] = '"' + filename + '"'
+                yield(title, values)
+                break
+        else:
+            values['filename'] = ''
+            yield (title, values)
+def stream_as_title_epnr(stream, filterobj):
+    for item in stream:
+        yield item[0], min(item[1]['watchers'].values())
+def play_from_stream(stream, filterobj):
+    batfiledir = '"' + os.path.join(os.path.split(database_reader.__file__)[0],'animelog.sh') + '"'
+    played_any = False
+    for title, values in stream:
+        played_any = True
+        if values.get('filename'):
+            os.system('{} {}'.format(batfiledir, values['filename']))
+        else:
+            errprint("{} episode {} not found on drive".format(title, min(values['watchers'].values())))
+    if not played_any:
+        errprint("Did not find anything to play")
+def play_single_item(title, episode):
+    if hasattr(episode, '__iter__'):
+        episode = tuple(episode)
     for filename in itertools.chain(glob.glob(os.path.join(get_video_path(), '*')), 
-    glob.glob(os.path.join(get_video_path(), '*', '*'))): #for the video folder and direct subfolders
+        glob.glob(os.path.join(get_video_path(), '*', '*'))):
         if not os.path.isfile(filename):
             continue
-        rtitle, rep = parse_title(filename)
-        if rtitle == title and is_target(ep, rep):
-            batfiledir = os.path.join(os.path.split(anilist.__file__)[0],'animelog.sh')
+        rtitle, repisode = parse_title(filename)
+        if rtitle == title and repisode == episode:
+            batfiledir = os.path.join(os.path.split(database_reader.__file__)[0],'animelog.sh')
             wrapped_names = map(lambda instr: '"'+instr + '"',# if ' ' in instr else instr, 
 								[batfiledir , filename])
             os.system('{} {}'.format(*wrapped_names))
             return (True, "Episode Played")
     else:
-        return (False, "{} episode {} not found on drive".format(title, successor(ep) if play_next else ep))
+        return (False, "{} episode {} not found on drive".format(title, episode))
 
-
-def request_play_title(title, watchers, play_next = False):
-    titles = filter(lambda this_title: title in this_title, 
-                map(lambda title_watchers:title_watchers[0], 
-            currently_watching(watchers)))
-    if not titles:
-        print('No series with "{}" found in watching database, did you finish it already?'.format(title))
-        return False
-    if len(titles) > 1:
-        print('Multiple titles found for "{}"'.format(title))
-        print("Searching for {}".format(", ".join(titles)))
-    return_states = map(lambda this_title: 
-                            (this_title,) + play_title(this_title, watchers, play_next = play_next), 
-                        titles)
-    
-    #return_tup has the following format (this_title,was_played_bool, was_played_message)
-    map(lambda return_tup: 
-            print("Couldn't play an episode of {}:{}".format(return_tup[0], return_tup[2])),
-            filter(lambda return_tup: not return_tup[1], return_states)) 
-            
 def print_short_help():
     print('''animelog by MDP, logs your series, options:
     -f, --filter            flag: output only currently airing anime
@@ -384,96 +445,119 @@ def print_short_help():
 def print_long_help():
     print(__doc__)
  
-short_command_set = sorted(('-h', '-w', '-t','-s','-n','-i','-a','-p', '-f'))
-long_command_set = sorted(('--help', '--watching', '--last', '--set', '--drop', '--dropfuzzy', '--finish', '--finishfuzzy', '--finished','--new', '--airing', '--play_next', '--play_last', '--simulate, --filter'))
 
-
-def check_option(short_option, long_option):
-    for option in ["-" + short_option, "--" + long_option]:
+def check_option(short_option, long_option, return_arguments = False):
+    if not short_option:
+        short_option = '_______________________________________'
+    for option in ["-" + short_option,
+                   "--" + long_option]:
         if option in sys.argv:
-            sys.argv.remove(option)
-            return True
+            pos = sys.argv.index(option)
+            if return_arguments:
+                return list(itertools.takewhile(lambda x: not x.startswith("-"), sys.argv[pos + 1:]))
+            else:
+                return True
     for pos, string in enumerate(sys.argv[1:], 1):
-        if string.startswith("--"):
-            if string == "--" + long_option:
-                sys.argv.pop(pos)
-                return True
-        elif string.startswith("-"):
+        if string.startswith("-") and not string.startswith('--'):
             if short_option in string:
-                sys.argv[pos] = string.replace(short_option, "")
-                if sys.argv[pos] == '-':
-                    sys.argv.pop(pos)
+                if return_arguments:
+                    return list(itertools.takewhile(lambda x: not x.startswith("-"), sys.argv[pos + 1:]))
                 return True
-    return False
+    return [] if return_arguments else False
 
 
 def main():
-    global __filter_by_airing__
     #old_path = os.path.cwd()
     os.chdir(os.path.abspath(__file__).rpartition(os.path.sep)[0])
-
-    if len(sys.argv) == 1 or sys.argv[1] in {'-h', '/?', ''}:
+    command = sys.argv[1]
+    
+    if len(sys.argv) == 1 or sys.argv[-1] in {'-h', '/?', ''}:
         print_short_help()
         return
-    command = sys.argv[1]
-    if command.startswith("-"):
-        #-----------------------
-        hold = check_option("i", "interactive")
-        __filter_by_airing__ = check_option("f", "filter")
-        command = sys.argv[1]
-        if command in {'--help'}:
-            print_long_help()
-        elif command in {'-w', '--watching'}:
-            print_currently_watching(sys.argv[2:] or get_current_watchers())
-        elif command in {'--last', '-t'}:
-            for title in sys.argv[2:]:
-                print_current_episode(sys.argv[2])
-        elif command in {'-s', '--set'}:
-            set_current_watchers(set(sys.argv[2:]))
-            update_autocompletion(get_current_watchers())
-        elif '--drop' == command:
-            current_watchers = get_current_watchers()
-            for title in sys.argv[2:]:
-                drop_title(title, current_watchers)
-        elif '--dropfuzzy' == command:
-            current_watchers = get_current_watchers()
-            for title in sys.argv[2:]:  
-                drop_fuzzy(title, current_watchers)
-        elif '--finish' == command:
-            current_watchers = get_current_watchers()
-            for title in sys.argv[2:]:
-                drop_title(title, current_watchers, save = True)
-        elif '--finishfuzzy' == command:
-            current_watchers = get_current_watchers()
-            for title in sys.argv[2:]:
-                drop_fuzzy(title, current_watchers, save = True)
-        elif '--finished' == command:
-            print_finished(sys.argv[2:] or  get_current_watchers())
-        elif command in {'-c', '--current'}:
-            print(get_current_watchers())
-        elif '--new' == command:
-            print_new(sys.argv[2:] or get_current_watchers())
-        elif command in {'-n', '--next'}:
-            print_new(sys.argv[2:] or get_current_watchers(), as_next = True)
-        elif command in {'-a', '--airing'}:
-            print_next_airing(sys.argv[2:] or get_current_watchers())
-        elif command in {'-p', '--play_next'}:
-            for title in sys.argv[2:]:
-                request_play_title(title.replace("_"," "), get_current_watchers(), play_next = True)
-        elif command in {'-l', '--play_last'}:
-            for title in sys.argv[2:]:
-                request_play_title(title.replace("_", " "), get_current_watchers(), play_next = False)
-        elif command in {'--simulate',}:
-            for filename in sys.argv[2:]:
-                print(parse_title(filename))
-        else:
-            print("did not recognize the command:", ', '.join(sys.argv[1:]))
-        if hold:
-            raw_input("press any key")
+    if sys.argv[-1] in {'--help', }:
+        print_long_help()
         return
-    watchers = get_current_watchers()
-    log_anime(os.path.split(command)[-1], watchers)
+    if not any(map(lambda x:x.startswith('-'), sys.argv[1:])):
+        watchers = get_current_watchers()
+        log_anime(os.path.split(command)[-1], watchers)
+        return
+    
+    filterobj = __filter_settings__
+    #action_flags = [(lambda x: print_from_stream(stream), ("r", "report"), False)]
+    for action, options,arguments in preprocess_flags:
+        return_value = check_option(options[0], options[1], arguments)
+        if return_value:
+            action(return_value)
+    for key, options in static_flags:
+        if not filterobj[key]:
+            filterobj[key] = check_option(options[0], options[1], isinstance(filterobj[key], list))
+    
+    if any(filterobj.values()):
+        filterobj['report'] = not filterobj['play']
+        stream = get_logstream(filterobj)
+    #watchers = get_current_watchers()
+    #log_anime(os.path.split(command)[-1], watchers)
     #os.chdir(old_path)
     #subprocess.call(["C:\Program Files\Combined Community Codec Pack\MPC\mpc-hc.exe", sys.argv[1]])
+
+__filter_settings__ =  {   "hold":False,
+                    "filter_by_airing":False, 
+                    "filter_by_unwatched_aired": False, 
+                    "filter_by_titles": [],
+                    "filter_by_titles_strict": False,
+                    "filter_by_watchers": [],
+                    "as_successor": False,
+                    "as_latest_unwatched":False,
+                    "as_title_epnr": False,
+                    "exclude_watchers": [],
+                    "lucky":False,
+                    "play": False,
+                    "report":False,
+                    "next_airdate":False
+                }
+
+    
+preprocess_flags = [
+        (set_current_watchers, ('s', 'set'), True),
+        ((lambda x: __filter_settings__.__setitem__("filter_by_watchers", get_current_watchers())),
+        ("c", "current"), False),
+        ((lambda x: database_updater.partial_update_database()), ('U', 'update'), False),
+        ((lambda x: database_updater.full_update_database()), ('', 'full-update'), False),
+        ((lambda x: database_updater.minimize_database()), ('', 'minimize'), False),
+        ((lambda userin: [drop_title(title, get_current_watchers()) for title in userin]), ('', 'drop'), True),
+        ((lambda userin: [drop_fuzzy(title, get_current_watchers()) for title in userin]), ('', 'dropfuzzy'),True),
+        ((lambda userin: [drop_title(title, get_current_watchers(), save = True) for title in userin]), ('', 'finish'),True)
+        ]
+        #((lambda x: filterobj.__setitem__("filter_by_titles", x)), ('', 'drop'),True)
+
+
+static_flags =  [("hold", ("i", "interactive")), 
+                     ("filter_by_airing", ('a', 'airing')),
+                    ("filter_by_unwatched_aired", ('u',  'unwatched')),
+                    ('filter_by_titles', ('t', 'title')), 
+                    ('filter_by_watchers',( 'w', 'watchers')),
+                    ('as_successor',('n', 'next')),
+                    ("as_latest_unwatched", ('l', 'latest')),
+                    ("as_title_epnr", ('e', 'episode')),
+                    ("play", ("p", "play")),
+                    ("lucky",("L", "lucky")),
+                    ("next_airdate",("d", "date"))
+                ]
+
+key_func_pairs = [("filter_by_titles", filter_by_titles),
+                       ("exclude_watchers", stream_exclude_watchers),
+                       ("filter_by_watchers", filter_by_watchers),
+                       ("filter_by_airing", filter_by_airing),
+                       ("filter_by_unwatched_aired", filter_by_unwatched_aired),
+                       ("as_successor", stream_as_successor),
+                       ("as_latest_unwatched", stream_as_latest_unwatched),
+                       ("as_title_epnr",stream_as_title_epnr),
+                       ("next_airdate", stream_find_next_airdate),
+                       ("play", stream_find_file),
+                       ("lucky", filter_by_lucky),
+                       ("play", play_from_stream),
+                       ("report", print_from_stream)
+                     ]
+
 if __name__ == '__main__':
     main()
