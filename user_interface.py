@@ -46,7 +46,10 @@ def add_docs():
         long_command = "--{1[1]}{3},  "
         explanation = "{0.__doc__}\n"
         totstring = "".join([short_command, long_command, explanation])
-        __doc__ += totstring.format(*flag)
+        try:
+            __doc__ += totstring.format(*flag)
+        except IndexError:
+            animelog.errprint(flag)
 
 def create_preprocess_flags():
     preprocess_flags = [
