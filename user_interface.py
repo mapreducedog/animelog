@@ -45,7 +45,7 @@ def add_docs():
         short_command = "-{1[0]}{args}, " if flag[1][0] else ""
         long_command = "--{1[1]}{args}  "
         explanation = "\n\t{0.__doc__}\n"
-        args = " <arg>.." if flag[2] else ""
+        args = " <arg>..." if flag[2] else ""
         totstring = "".join([short_command, long_command, explanation])
         try:
             __doc__ += totstring.format(*flag, args = args)
