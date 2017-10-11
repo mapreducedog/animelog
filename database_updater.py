@@ -38,7 +38,7 @@ def get_token():
         try:
             return access.json()['access_token']
         except ValueError as e:
-            sys.stderr.write(access.text + '\n')
+            animelog.errprint(access.text + '\n')
             raise e
     else:
         access.raise_for_status()

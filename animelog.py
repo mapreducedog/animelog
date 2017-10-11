@@ -1,5 +1,6 @@
 
 from __future__ import print_function
+#builtin
 from copy import deepcopy
 import sys
 import random
@@ -9,8 +10,11 @@ import itertools
 import json
 import os
 import glob
+
+#own
 import database_reader
 import database_updater
+import user_interface
 __autocompletion__ = True
 __filter_by_airing__ = False
 
@@ -102,7 +106,7 @@ def save_log(data):
         update_autocompletion(get_current_watchers())
 def update_autocompletion(watchers):
     shows = sorted(map(lambda x:x.replace(" ", "_") , currently_watching(watchers)))
-    short_command_set, long_command_set = [filter(None, prep) + filter(None, stat) for prep, stat in zip(zip(*zip(*static_flags)[1]),zip(*zip(*preprocess_flags)[1]))] 
+    short_command_set, long_command_set = [filter(None, prep) + filter(None, stat) for prep, stat in zip(zip(*zip(*user_interface.static_flags)[1]),zip(*zip(*user_interface.preprocess_flags)[1]))] 
     short_command_set = [x for x in sorted(short_command_set)]
     long_command_set = ['--'+x for x in sorted(long_command_set)]
     
@@ -259,7 +263,7 @@ def get_logstream(filterobj, this_stream = None):
         this_stream = get_unfiltered_logstream(filterobj)
  
     stream = this_stream
-    for item in static_flags:
+    for item in user_interface.static_flags:
         function = item[0]
         if filterobj[function]:
             stream = function(stream, filterobj)
@@ -308,7 +312,7 @@ def filter_by_unwatched_aired(stream, filterobj):
             if aired_eps and  (max(aired_eps) > min(values['watchers'].values())): #is in database_reader and (aired_ep1, aired_ep2 ...) > min((title, {watcher:ep_nr, ... })[1].values()))
                 yield (title, values)
         except ValueError:
-            print("error on", item)
+            errprint("error on", title, values)
 def stream_find_next_airdate(stream, filterobj):
     for title, values in stream:
         airdate = database_reader.get_next_airing_time_single(title)
@@ -386,25 +390,12 @@ def play_single_item(title, episode):
         return (False, "{} episode {} not found on drive".format(title, episode))
 
 def print_short_help():
-    print('''animelog by MDP, logs your series, options:
-    -f, --filter            flag: output only currently airing anime
-    -i, --interactive       keep prompt open.
-    
-    -s <watcher>..., --set <watcher>...  set current watchers
-    -c, --current           output current watchers
-    
-    -p <title>.., --play_next <title>..   play next episode for titles
-    -l, --last,             play most recently watched episode of title
-    
-    -w <watcher>.., --watching <watcher>... 
-                    output titles that are being watched
-    
-    --help          print long help
-    
-    ''')
+    user_interface.add_docs()
+    print(__doc__)
 
 
 def print_long_help():
+    user_interface.add_docs()
     print(__doc__)
  
 
@@ -447,13 +438,14 @@ def main():
         log_anime(os.path.split(command)[-1], watchers)
         return
     
+    #we don't copy here, to give preprocess flags the ability to modify
     filterobj = __filter_settings__
     #action_flags = [(lambda x: print_from_stream(stream), ("r", "report"), False)]
-    for action, options,arguments in preprocess_flags:
+    for action, options,arguments in user_interface.preprocess_flags:
         return_value = check_option(options[0], options[1], arguments)
         if return_value:
             action(return_value)
-    for item in static_flags:
+    for item in user_interface.static_flags:
         key = item[0]
         if not filterobj[key]:
             filterobj[key] = check_option(item[1][0], item[1][1], item[2])
@@ -470,39 +462,11 @@ def main():
 
 
 
-preprocess_flags = [
-        (set_current_watchers, ('s', 'set'), True),
-        ((lambda x: __filter_settings__.__setitem__(filter_by_watchers, get_current_watchers())),
-        ("c", "current"), False),
-        ((lambda x: database_updater.partial_update_database()), ('U', 'update'), False),
-        ((lambda x: database_updater.full_update_database()), ('', 'full-update'), False),
-        ((lambda x: database_updater.minimize_database()), ('', 'minimize'), False),
-        ((lambda userin: [drop_title(title, get_current_watchers()) for title in userin]), ('', 'drop'), True),
-        ((lambda userin: [drop_fuzzy(title, get_current_watchers()) for title in userin]), ('', 'dropfuzzy'),True),
-        ((lambda userin: [drop_title(title, get_current_watchers(), save = True) for title in userin]), ('', 'finish'),True),
-        ((lambda titles: [print(parse_title(title)) for title in titles]), ('', 'simulate'), True),
-        ((lambda x: add_alias(x[0].replace("_"," "), x[1])), ('', 'alias'), True),
-        ]
         #((lambda x: filterobj.__setitem__("filter_by_titles", x)), ('', 'drop'),True)
 
-static_flags =  [
-                 (filter_by_titles, ('t', 'title'), True),
-                 (filter_by_watchers, ('w', 'watchers'), True),
-                 (filter_by_airing, ('a', 'airing'), False),
-                 (filter_by_unwatched_aired, ('u', 'unwatched'), False),
-                 (stream_as_successor, ('n', 'next'), False),
-                 (stream_as_latest_unwatched, ('l', 'latest'), False),
-                 (stream_find_next_airdate, ('d', 'date'), False),
-                 (stream_as_title_epnr, ('e', 'episode'), False),
-                 (stream_find_file, ('p', 'play'), False),
-                 (filter_by_lucky, ('L', 'lucky'), False),
-                 (play_from_stream, ('p', 'play'), False),
-                 (print_from_stream, ('', ''), False)
-                ]
+user_interface.initialize()
+__filter_settings__ = { item[0] : [] if item[2] else False for item in user_interface.static_flags}
 
-__filter_settings__ = { item[0] : [] if item[2] else False for item in static_flags}
 
-__doc__ = ''' animelog by mdp 
-''' + "\n".join(["-{1[0]}{3}, --{1[1]}{3}, {0.__name__}".format(*(item + (" <args>" if item[-1] else "",))) for item in static_flags if any(item[1])]) 
 if __name__ == '__main__':
     a = main()
