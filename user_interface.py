@@ -42,8 +42,8 @@ def add_docs():
             continue
     #animelog.__doc__ = ''' animelog by mdp\n'''
     for flag in filter(lambda x: any(x[1][1]) and getattr(x[0], '__doc__'), itertools.chain(preprocess_flags, static_flags)):
-        short_command = "-{1[0]}{args}, " if flag[1][0] else ""
-        long_command = "--{1[1]}{args}  "
+        short_command = "-{1[0]}{args}, " if flag[1][0] else "--{1[1]}{args} "
+        long_command = "--{1[1]}{args}  " if flag[1][0] else "\t"
         explanation = ":\t{0.__doc__}\n"
         args = " <arg>..." if flag[2] else ""
         totstring = "".join([short_command, long_command, explanation])
