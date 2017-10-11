@@ -62,8 +62,10 @@ def find_by_title(title):
     if isinstance(model, list):
         return model[0]
 
-def save_title_info(title):
-    model = find_by_title(title)
+def save_title_info(title, alias = None):
+    if alias is None:
+        alias = title
+    model = find_by_title(alias)
     global_database[title] = {'exclude' : False}
     if model is not None:
         for key in ['airing_status', 'total_episodes']:
@@ -89,14 +91,14 @@ def full_update_database():
     log = animelog.get_log()
     for title, values in log.iteritems():
         if not global_database.get(title, {}).get('exclude', False) and not values.get('exclude', False):
-            save_title_info(title)
+            save_title_info(title, values.get('alias', title))
     save_global_database()
 def partial_update_database():
     load_global_database()
     log = animelog.get_log()
     for title, values in log.iteritems():
         if not values.get('exclude', False) and title not in global_database:
-            save_title_info(title)
+            save_title_info(title, values.get('alias', title))
     save_global_database()
 def single_update_database(title):
     load_global_database()
