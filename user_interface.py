@@ -7,6 +7,7 @@ static_flags = []
 preprocess_flags = []
 
 def add_docs():
+    global __doc__
     short_docs = {
         'set' : 'set the current watchers to <arg>..',
         'current': 'filter by current watchers, handles multiple current watchers in AND-wise fashion',
