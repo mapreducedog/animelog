@@ -44,7 +44,7 @@ def add_docs():
     for flag in filter(lambda x: any(x[1][1]) and getattr(x[0], '__doc__'), itertools.chain(preprocess_flags, static_flags)):
         short_command = "-{1[0]}{args}, " if flag[1][0] else ""
         long_command = "--{1[1]}{args}  "
-        explanation = ":{0.__doc__:10}\n"
+        explanation = ":{0.__doc__:20}\n"
         args = " <arg>..." if flag[2] else ""
         totstring = "".join([short_command, long_command, explanation])
         try:
