@@ -42,14 +42,15 @@ def add_docs():
             continue
     #animelog.__doc__ = ''' animelog by mdp\n'''
     for flag in filter(lambda x: any(x[1][1]) and hasattr(x[0], '__doc__'), itertools.chain(preprocess_flags, static_flags)):
-        short_command = "-{1[0]}{3}, " if flag[1][0] else "\t"
-        long_command = "--{1[1]}{3},  "
+        short_command = "-{1[0]}{2}, " if flag[1][0] else "\t"
+        long_command = "--{1[1]}{2},  "
         explanation = "{0.__doc__}\n"
         totstring = "".join([short_command, long_command, explanation])
         try:
             __doc__ += totstring.format(*flag)
         except IndexError:
             animelog.errprint(flag)
+            
 
 def create_preprocess_flags():
     preprocess_flags = [
