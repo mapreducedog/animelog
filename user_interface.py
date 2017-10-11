@@ -44,7 +44,7 @@ def add_docs():
         short_command = "-{1[0]}{3}, " if flag[1][0] else "\t"
         long_command = "--{1[1]}{3},  "
         explanation = "{0.__doc__}\n"
-        totstring = "".join(short_command, long_command, explanation)
+        totstring = "".join([short_command, long_command, explanation])
         animelog.__doc__ += totstring
 
 def create_preprocess_flags():
