@@ -1,4 +1,3 @@
-
 from __future__ import print_function
 #builtin
 from copy import deepcopy
@@ -15,6 +14,7 @@ import glob
 import database_reader
 import database_updater
 import user_interface
+
 __autocompletion__ = True
 __filter_by_airing__ = False
 
@@ -391,12 +391,12 @@ def play_single_item(title, episode):
 
 def print_short_help():
     user_interface.add_docs()
-    print(__doc__)
+    print(user_interface.__doc__)
 
 
 def print_long_help():
     user_interface.add_docs()
-    print(__doc__)
+    print(user_interface.__doc__)
  
 
 def check_option(short_option, long_option, return_arguments = False):

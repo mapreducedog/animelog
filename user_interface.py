@@ -2,7 +2,7 @@ from __future__ import print_function
 import animelog
 import database_updater
 import itertools
-
+__doc__ = "animelog by mdp\n"
 static_flags = []
 preprocess_flags = []
 
@@ -39,13 +39,13 @@ def add_docs():
             flag[0].__doc__ = short_docs.pop(flag[1][1]) 
         except KeyError:
             continue
-    animelog.__doc__ = ''' animelog by mdp\n'''
+    #animelog.__doc__ = ''' animelog by mdp\n'''
     for flag in filter(lambda x: any(x[1][1]) and hasattr(x[0], '__doc__'), itertools.chain(preprocess_flags, static_flags)):
         short_command = "-{1[0]}{3}, " if flag[1][0] else "\t"
         long_command = "--{1[1]}{3},  "
         explanation = "{0.__doc__}\n"
         totstring = "".join([short_command, long_command, explanation])
-        animelog.__doc__ += totstring
+        __doc__ += totstring
 
 def create_preprocess_flags():
     preprocess_flags = [
