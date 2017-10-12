@@ -63,7 +63,7 @@ def find_by_title(title, strict = False):
         models = model
         if strict:
             for model in models:
-                if title.lower() in {model['romaji_title'].lower(), model['title_english'].lower()}:
+                if title.lower() in {model['title_romaji'].lower(), model['title_english'].lower()}:
                     return model
         return models[0]
     else:
