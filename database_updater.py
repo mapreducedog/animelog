@@ -53,19 +53,24 @@ def get_airing_data(id):
     get_global_token()
     return requests.get(baseurl.format(r'anime/{}/airing'.format(id)), params = {'access_token':global_token}).json()
 
-def find_by_title(title):
+def find_by_title(title, strict = False):
     get_global_token()
     try:
         model = requests.get(baseurl.format(r'anime/search/{}'.format(title)), params = {'access_token':global_token}).json()
     except ValueError:
         return None
     if isinstance(model, list):
-        return model[0]
+        models = model
+        if strict:
+            for model in models:
+                if title.lower() in {model['romaji_title'].lower(), model['title_english'].lower()}:
+                    return model
+        return models[0]
+    else:
+        return model
 
 def save_title_info(title, alias = None):
-    if alias is None:
-        alias = title
-    model = find_by_title(alias)
+    model = find_by_title(alias or title, alias is not None)
     global_database[title] = {'exclude' : False}
     if model is not None:
         for key in ['airing_status', 'total_episodes']:
@@ -98,7 +103,7 @@ def partial_update_database():
     log = animelog.get_log()
     for title, values in log.iteritems():
         if not values.get('exclude', False) and title not in global_database:
-            save_title_info(title, values.get('alias', title))
+            save_title_info(title, values.get('alias', None))
     save_global_database()
 def single_update_database(title):
     load_global_database()
