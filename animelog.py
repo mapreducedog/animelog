@@ -253,7 +253,7 @@ def print_from_stream(stream, filterobj):
         else:
             print(title, values)
 def currently_watching(watchers):
-    filterobj = deepcopy(__filter_settings__)
+    filterobj = deepcopy(user_interface.__filter_settings__)
     filterobj['filter_by_watchers'] = watchers
     return (x[0] for x in get_logstream(filterobj))
     
@@ -398,6 +398,8 @@ def print_long_help():
     user_interface.add_docs()
     print(user_interface.__doc__)
  
+def watchers_filter_to_current(x):
+    user_interface.__filter_settings__[user_interface.animelog.filter_by_watchers] = get_current_watchers()
 
 def check_option(short_option, long_option, return_arguments = False):
     if not short_option:
@@ -439,8 +441,9 @@ def main():
         return
     
     #we don't copy here, to give preprocess flags the ability to modify
-    filterobj = __filter_settings__
+    filterobj = user_interface.__filter_settings__
     #action_flags = [(lambda x: print_from_stream(stream), ("r", "report"), False)]
+   
     for action, options,arguments in user_interface.preprocess_flags:
         return_value = check_option(options[0], options[1], arguments)
         if return_value:
@@ -449,7 +452,7 @@ def main():
         key = item[0]
         if not filterobj[key]:
             filterobj[key] = check_option(item[1][0], item[1][1], item[2])
-            
+    [print(key, value) for key, value in filterobj.iteritems()]
     if any(filterobj.values()):
         filterobj[user_interface.animelog.print_from_stream] = not filterobj[user_interface.animelog.play_from_stream]
         stream = get_logstream(filterobj)
@@ -465,8 +468,7 @@ def main():
         #((lambda x: filterobj.__setitem__("filter_by_titles", x)), ('', 'drop'),True)
 
 user_interface.initialize()
-__filter_settings__ = { item[0] : [] if item[2] else False for item in user_interface.static_flags}
-user_interface.__filter_settings = __filter_settings__
+user_interface.__filter_settings = user_interface.__filter_settings__
 
 if __name__ == '__main__':
     a = main()

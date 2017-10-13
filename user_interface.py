@@ -58,7 +58,7 @@ def add_docs():
 def create_preprocess_flags():
     preprocess_flags = [
         (animelog.set_current_watchers, ('s', 'set'), True),
-        ((lambda x: __filter_settings__.__setitem__(animelog.filter_by_watchers, animelog.get_current_watchers())),
+        (animelog.watchers_filter_to_current,
         ("c", "current"), False),
         ((lambda x: database_updater.partial_update_database()), ('U', 'update'), False),
         ((lambda x: database_updater.full_update_database()), ('', 'full-update'), False),
@@ -88,6 +88,7 @@ def create_static_flags():
     return static_flags
     
 def initialize():
-    global static_flags, preprocess_flags
+    global static_flags, preprocess_flags, __filter_settings__
     static_flags = create_static_flags()
     preprocess_flags = create_preprocess_flags()
+    filter_settings =  { item[0] : [] if item[2] else False for item in static_flags}
