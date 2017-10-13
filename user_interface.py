@@ -19,7 +19,7 @@ def add_docs():
         'dropfuzzy': 'as --drop, except will match shownames partially',
         'play' : 'play the result(s) of the filter, and update the current watchers\' log with this',
         'title': 'filter fuzzily by title(s), handles multiple titles in an OR-wise fashion',
-        'alias' : 'add an alias for a show for retrieving airing data',
+        'alias' : 'add an alias for a show for retrieving airing data, add no second argument to remove alias ',
         'finish' : 'move supplied show from current watchers\' active log to their finished log',
         'simulate': 'parse a filename and outputs how it would be named in log',
         'date' : 'output the next airing date of shows in filter',
@@ -67,7 +67,7 @@ def create_preprocess_flags():
         ((lambda userin: [animelog.drop_fuzzy(title, animelog.get_current_watchers()) for title in userin]), ('', 'dropfuzzy'),True),
         ((lambda userin: [animelog.drop_title(title, animelog.get_current_watchers(), save = True) for title in userin]), ('', 'finish'),True),
         ((lambda titles: [print(animelog.parse_title(title)) for title in titles]), ('', 'simulate'), True),
-        ((lambda x: animelog.add_alias(x[0].replace("_"," "), x[1])), ('', 'alias'), True),
+        ((lambda x: animelog.add_alias(x[0], x[1]) if len(x) > 1 else animelog.remove_alias(x[0])), ('', 'alias'), True),
         ]
     return preprocess_flags
 def create_static_flags():
@@ -91,4 +91,4 @@ def initialize():
     global static_flags, preprocess_flags, __filter_settings__
     static_flags = create_static_flags()
     preprocess_flags = create_preprocess_flags()
-    filter_settings =  { item[0] : [] if item[2] else False for item in static_flags}
+    __filter_settings__ =  { item[0] : [] if item[2] else False for item in static_flags}

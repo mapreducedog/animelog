@@ -168,6 +168,7 @@ def add_to_finished(title, watchers):
     
 def add_alias(title, alias):
     log = get_log()
+    title = parse_title(title, True)
     if title in log:
         log[title]['alias'] = alias
         save_log(log)
@@ -177,8 +178,17 @@ def add_alias(title, alias):
             log[showtitle]['alias'] = alias
             save_log(log)
             break
-    
-    
+def remove_alias(title):
+    log = get_log
+    if title in log:
+        del log[title]['alias']
+        save_log(log)
+        return
+    for showtitle in log:
+        if title in showtitle:
+            del log[showtitle]['alias']
+            save_log(log)
+            break
 def log_anime(title, watchers):
     title, ep_nr = parse_title(title)
     if ep_nr is None: #its a stand-alone film
@@ -419,7 +429,8 @@ def check_option(short_option, long_option, return_arguments = False):
             if short_option in string:
                 if return_arguments:
                     return list(itertools.takewhile(lambda x: not x.startswith("-"), sys.argv[pos + 1:]))
-                return True
+                else:
+                    return True
     return [] if return_arguments else False
 
 
@@ -443,19 +454,14 @@ def main():
     #we don't copy here, to give preprocess flags the ability to modify
     filterobj = user_interface.__filter_settings__
     #action_flags = [(lambda x: print_from_stream(stream), ("r", "report"), False)]
-   
     for action, options,arguments in user_interface.preprocess_flags:
         return_value = check_option(options[0], options[1], arguments)
         if return_value:
             action(return_value)
     for item in user_interface.static_flags:
         key = item[0]
-        try:
-            if not filterobj[key]:
-                filterobj[key] = check_option(item[1][0], item[1][1], item[2])
-        except KeyError:
-            print(key)
-    [print(key, value) for key, value in filterobj.iteritems()]
+        if not filterobj[key]:
+            filterobj[key] = check_option(item[1][0], item[1][1], item[2])
     if any(filterobj.values()):
         filterobj[user_interface.animelog.print_from_stream] = not filterobj[user_interface.animelog.play_from_stream]
         stream = get_logstream(filterobj)
@@ -471,7 +477,5 @@ def main():
         #((lambda x: filterobj.__setitem__("filter_by_titles", x)), ('', 'drop'),True)
 
 user_interface.initialize()
-user_interface.__filter_settings = user_interface.__filter_settings__
-
 if __name__ == '__main__':
     a = main()

@@ -56,21 +56,27 @@ def get_airing_data(id):
 def find_by_title(title, strict = False):
     get_global_token()
     try:
-        model = requests.get(baseurl.format(r'anime/search/{}'.format(title)), params = {'access_token':global_token}).json()
+        query_result = requests.get(baseurl.format(r'anime/search/{}'.format(title)), params = {'access_token':global_token}).json()
     except ValueError:
         return None
-    if isinstance(model, list):
-        models = model
+    if isinstance(query_result, list):
+        models = query_result
+        
         if strict:
             for model in models:
                 if title.lower() in {model['title_romaji'].lower(), model['title_english'].lower()}:
                     return model
+                
+        else:
+            animelog.errprint(" WARNING: multiple matches in remote database for {} : {}.\n"
+    "assuming {}, add an alias to select other".format(title, 
+                ", ".join((model[id] for model in models)), models[0]))
         return models[0]
     else:
-        return model
+        return query_result
 
 def save_title_info(title, alias = None):
-    model = find_by_title(alias or title, alias is not None)
+    model = find_by_title(alias or title, alias or None)
     global_database[title] = {'exclude' : False}
     if model is not None:
         for key in ['airing_status', 'total_episodes']:
