@@ -450,8 +450,11 @@ def main():
             action(return_value)
     for item in user_interface.static_flags:
         key = item[0]
-        if not filterobj[key]:
-            filterobj[key] = check_option(item[1][0], item[1][1], item[2])
+        try:
+            if not filterobj[key]:
+                filterobj[key] = check_option(item[1][0], item[1][1], item[2])
+        except KeyError:
+            print(key)
     [print(key, value) for key, value in filterobj.iteritems()]
     if any(filterobj.values()):
         filterobj[user_interface.animelog.print_from_stream] = not filterobj[user_interface.animelog.play_from_stream]
