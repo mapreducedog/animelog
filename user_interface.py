@@ -5,7 +5,7 @@ import itertools
 __doc__ = "animelog by mdp\n"
 static_flags = []
 preprocess_flags = []
-
+__filter_settings__ = {}
 def add_docs():
     global __doc__
     short_docs = {
@@ -58,7 +58,7 @@ def add_docs():
 def create_preprocess_flags():
     preprocess_flags = [
         (animelog.set_current_watchers, ('s', 'set'), True),
-        ((lambda x: animelog.__filter_settings__.__setitem__(animelog.filter_by_watchers, animelog.get_current_watchers())),
+        ((lambda x: __filter_settings__.__setitem__(animelog.filter_by_watchers, animelog.get_current_watchers())),
         ("c", "current"), False),
         ((lambda x: database_updater.partial_update_database()), ('U', 'update'), False),
         ((lambda x: database_updater.full_update_database()), ('', 'full-update'), False),

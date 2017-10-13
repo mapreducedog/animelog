@@ -451,7 +451,7 @@ def main():
             filterobj[key] = check_option(item[1][0], item[1][1], item[2])
             
     if any(filterobj.values()):
-        filterobj[print_from_stream] = not filterobj[play_from_stream]
+        filterobj[user_interface.animelog.print_from_stream] = not filterobj[user_interface.animelog.play_from_stream]
         stream = get_logstream(filterobj)
     return filterobj
     #watchers = get_current_watchers()
@@ -466,7 +466,7 @@ def main():
 
 user_interface.initialize()
 __filter_settings__ = { item[0] : [] if item[2] else False for item in user_interface.static_flags}
-
+user_interface.__filter_settings = __filter_settings__
 
 if __name__ == '__main__':
     a = main()
