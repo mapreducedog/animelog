@@ -168,7 +168,7 @@ def add_to_finished(title, watchers):
     
 def add_alias(title, alias):
     log = get_log()
-    title = parse_title(title, True)
+    title, _ = parse_title(title, True)
     if title in log:
         log[title]['alias'] = alias
         save_log(log)
@@ -177,9 +177,9 @@ def add_alias(title, alias):
         if title in showtitle:
             log[showtitle]['alias'] = alias
             save_log(log)
-            break
 def remove_alias(title):
-    log = get_log
+    log = get_log()
+    title, _ = parse_title(title, True)
     if title in log:
         del log[title]['alias']
         save_log(log)
@@ -188,7 +188,6 @@ def remove_alias(title):
         if title in showtitle:
             del log[showtitle]['alias']
             save_log(log)
-            break
 def log_anime(title, watchers):
     title, ep_nr = parse_title(title)
     if ep_nr is None: #its a stand-alone film
@@ -344,7 +343,7 @@ def stream_as_latest_unwatched(stream, filterobj):
             latest = max(aired_eps)
             if latest > min(watchers_eps.values()):
                 right_item = item[1].copy()
-                right_item['watchers'] = {watcher : latest for watcher in watchers_eps.iteritems()}
+                right_item['watchers'] = {watcher : latest for watcher in w*atchers_eps.iteritems()}
                 yield (title, right_item)                
 def stream_find_file(stream, filterobj):
     settings = get_settings()

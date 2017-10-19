@@ -51,8 +51,14 @@ def add_docs():
             __doc__ += totstring.format(*flag, args = args)
         except IndexError:
             animelog.errprint(flag)
-    
+
         
+def alias_add_or_remove(userin):
+    print(userin)
+    if len(userin) > 1:
+        animelog.add_alias(userin[0], userin[1])
+    else:
+        animelog.remove_alias(userin[0])
     
 
 def create_preprocess_flags():
@@ -60,15 +66,15 @@ def create_preprocess_flags():
         (animelog.set_current_watchers, ('s', 'set'), True),
         (animelog.watchers_filter_to_current,
         ("c", "current"), False),
-        ((lambda x: database_updater.partial_update_database()), ('U', 'update'), False),
-        ((lambda x: database_updater.full_update_database()), ('', 'full-update'), False),
-        ((lambda x: database_updater.minimize_database()), ('', 'minimize'), False),
         ((lambda userin: [animelog.drop_title(title, animelog.get_current_watchers()) for title in userin]), ('', 'drop'), True),
         ((lambda userin: [animelog.drop_fuzzy(title, animelog.get_current_watchers()) for title in userin]), ('', 'dropfuzzy'),True),
         ((lambda userin: [animelog.drop_title(title, animelog.get_current_watchers(), save = True) for title in userin]), ('', 'finish'),True),
+        ((lambda x: database_updater.minimize_database()), ('', 'minimize'), False),
+        ((lambda x: database_updater.partial_update_database()), ('U', 'update'), False),
+        ((lambda x: database_updater.full_update_database()), ('', 'full-update'), False),
         ((lambda titles: [print(animelog.parse_title(title)) for title in titles]), ('', 'simulate'), True),
-        ((lambda x: animelog.add_alias(x[0], x[1]) if len(x) > 1 else animelog.remove_alias(x[0])), ('', 'alias'), True),
-        ]
+        (alias_add_or_remove, ('', 'alias'), True),
+        ] 
     return preprocess_flags
 def create_static_flags():
     static_flags =  [

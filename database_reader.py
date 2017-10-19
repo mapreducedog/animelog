@@ -66,7 +66,10 @@ def get_aired_episodes(title):
         return map(lambda ep_date: int(ep_date[0]), 
                filter(match, airing_data.iteritems())
                 )
-    return None
+    elif model.get('airing_status', None) in {'finished airing', None} and 'total_episodes' in model:
+        return range(1, model['total_episodes'] + 1)
+    else:
+        return None
     
 def get_next_airing_time_single(title):
     curtime = time.time()
