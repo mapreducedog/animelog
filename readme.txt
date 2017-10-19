@@ -1,3 +1,10 @@
+addding aliases:
+    if the name of a show as it exists in your log, is different from that in the remote database, you can add an alias.
+    animelog --alias "Foobar Adventures" "The Legendary Adventures of Foobar - The Adventuring"
+    if this is still ambiguous, (for example, if two shows in the remote database have exactly the same name),
+you can also alias by id by setting the alias to "id:<id-number>". Suggested ID-numbers are reported when updating the local database: example
+    animelog --alias "Foobar Adventures" "id:123456"
+   
 
 
 examples:
