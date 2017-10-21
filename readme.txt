@@ -1,3 +1,5 @@
+
+
 addding aliases:
     if the name of a show as it exists in your log, is different from that in the remote database, you can add an alias.
     animelog --alias "Foobar Adventures" "The Legendary Adventures of Foobar - The Adventuring"
@@ -5,6 +7,9 @@ addding aliases:
 you can also alias by id by setting the alias to "id:<id-number>". Suggested ID-numbers are reported when updating the local database: example
     animelog --alias "Foobar Adventures" "id:123456"
    
+
+autocompletion:
+  if you have bash autocompletion enabled, you can autocomplete flags and arguments (by pressing tab). For titles of shows, autocompletion will only suggest those of current watchers. if you just changed current_watchers, be sure to start a new bash session, to reload the newest autocompletion options. Likewise, a newly watched show will only be suggested with autocompletion in bash sessions after it was first played.
 
 
 examples:

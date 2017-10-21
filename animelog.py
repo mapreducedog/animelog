@@ -260,7 +260,7 @@ def print_from_stream(stream, filterobj):
             for key, value in values.iteritems():
                 print(" "*4 + "{} : {}".format(key, value))
         else:
-            print(title, values)
+            print("{:20} {}".format(title, values))
 def currently_watching(watchers):
     filterobj = deepcopy(user_interface.__filter_settings__)
     filterobj['filter_by_watchers'] = watchers
@@ -298,7 +298,12 @@ def get_unfiltered_logstream(filterobj):
     log = get_log()
     for item in log.iteritems():
         yield item
-        
+
+def get_finished_stream(stream, filterobj):
+    finished_log = get_finished()
+    for item in finished_log.iteritems():
+        yield item
+
 def filter_by_titles(stream, filterobj):
     #if filterobj["filter_by_titles_strict"]:
     #   return itertools.ifilter(lambda x:x[0] in map(lambda x : parse_title(x, skip_number = True)[0],filterobj["filter_by_titles"]), stream)
@@ -343,7 +348,7 @@ def stream_as_latest_unwatched(stream, filterobj):
             latest = max(aired_eps)
             if latest > min(watchers_eps.values()):
                 right_item = item[1].copy()
-                right_item['watchers'] = {watcher : latest for watcher in w*atchers_eps.iteritems()}
+                right_item['watchers'] = {watcher : latest for watcher in watchers_eps.iteritems()}
                 yield (title, right_item)                
 def stream_find_file(stream, filterobj):
     settings = get_settings()

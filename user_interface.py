@@ -29,6 +29,7 @@ def add_docs():
         'airing' : 'filter episodes by currently airing shows',
         'unwatched': 'filter by shows that have unwatched aired episodes',
         'episode': 'when outputting, only display show title and episode number',
+        'finished':'print finished shows'
     }
     for flag in itertools.chain(preprocess_flags, static_flags):
         try:
@@ -78,6 +79,7 @@ def create_preprocess_flags():
     return preprocess_flags
 def create_static_flags():
     static_flags =  [
+                 (animelog.get_finished_stream,('', 'finished'),False),
                  (animelog.filter_by_titles, ('t', 'title'), True),
                  (animelog.filter_by_watchers, ('w', 'watchers'), True),
                  (animelog.filter_by_airing, ('a', 'airing'), False),
