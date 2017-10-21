@@ -163,7 +163,9 @@ def save_finished(data):
 
 def add_to_finished(title, watchers):
     finished = get_finished()
-    finished[title] = list(set(watchers)|set(finished.get(title, [])))
+    new_watchers = set(watchers)|set(finished.get(title, {}).get('watchers',[]))
+    finished.setdefault(title, {})
+    finished[title][watchers] = new_watchers
     save_finished(finished)
     
 def add_alias(title, alias):
