@@ -186,7 +186,7 @@ def add_to_finished(title, watchers):
     finished = get_finished()
     new_watchers = set(watchers)|set(finished.get(title, {}).get('watchers',[]))
     finished.setdefault(title, {})
-    finished[title][watchers] = new_watchers
+    finished[title]["watchers"] = list(new_watchers)
     save_finished(finished)
     
     
