@@ -2,14 +2,44 @@
 
 addding aliases:
     if the name of a show as it exists in your log, is different from that in the remote database, you can add an alias.
-    animelog --alias "Foobar Adventures" "The Legendary Adventures of Foobar - The Adventuring"
+    animelog --title "Foobar Adventures" --db-alias "The Legendary Adventures of Foobar - The Adventuring"
+   
     if this is still ambiguous, (for example, if two shows in the remote database have exactly the same name),
 you can also alias by id by setting the alias to "id:<id-number>". Suggested ID-numbers are reported when updating the local database: example
-    animelog --alias "Foobar Adventures" "id:123456"
+    animelog --title "Foobar Adventures" --db-alias "id:123456"
    
+
+shows not supplied by external database:
+    shows that are not supplied by the remote database, are regarded as if no episodes have aired, and thus when 
+    querying with the -n flag, will be suppressed. 
+    If this is not what you want, you can add the number of episodes (in this example 45),
+    of the title by using the --db-set-episodes flag as follows:
+    animelog --title "Foobar Adventures" --db-set-episodes 45
+    
+    this will put the show to "having all episodes aired" and thus always be displayed when you query with the -n flag.
+    this will persist over full-updates, and the show will automatically finish when you watch the last episode.
+
+ 
+managing the local database:
+    animelog is designed to work even without internet, so rather than updating the local database of airing times whenever a new show is watched,
+    this is done by a commandline flag.  
+    
+    if you just want to add newly watched shows to the database use:
+    animelog --db-update
+    which will copy titles in the log that do not have entries in the local database from the remote to the local database. It will not change anything else about the database.
+    
+    animelog --db-full-update
+    will perform a full update, which includes the partial update, but also updates other entries by reading them again from the remote database. 
+    a common thing that might change is the airing status of the show as a result of this.
+    
+    animelog --db-minimize 
+    will remove all shows from the database that arent being watched, thus reducing the filesize of the database
+    
 
 autocompletion:
   if you have bash autocompletion enabled, you can autocomplete flags and arguments (by pressing tab). For titles of shows, autocompletion will only suggest those of current watchers. if you just changed current_watchers, be sure to start a new bash session, to reload the newest autocompletion options. Likewise, a newly watched show will only be suggested with autocompletion in bash sessions after it was first played.
+
+
 
 
 examples:
@@ -22,7 +52,7 @@ examples:
         play the next episode of "The Foobar", if all current watchers are watching it. (and record it to the log of the current watchers)
     
     "What's out?"
-    animelog -nacu  (or animelog --next --airin --current --unwatched)
+    animelog -nacu  (or animelog --next --airing --current --unwatched)
         output the next episode of airing shows that current watchers are watching, if a new episode has aired.
     
     "
