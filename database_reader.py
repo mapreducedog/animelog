@@ -58,7 +58,7 @@ def get_aired_episodes(title):
         return ep_date[1] <= curtime
         
     curtime = time.time()
-    model = find_by_title(title)
+    model = find_by_title(title, respect_exclude = False)
     if not model:
         return None
     airing_data = model.get('airing_data', {})
@@ -122,10 +122,10 @@ def get_models(titles):
         if model:
             yield title, model
             
-def find_by_title(title):
+def find_by_title(title, respect_exclude = True):
     load_global_database()
     model = global_database.get(title, None)
-    if model is not None and not model.get('exclude', False):
+    if model is not None and (not (respect_exclude and model.get('exclude', False))):
         return model
     return None
         
