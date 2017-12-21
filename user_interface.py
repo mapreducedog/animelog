@@ -2,7 +2,7 @@ from __future__ import print_function
 import animelog
 import database_updater
 import itertools
-__doc__ = "animelog by mdp\n"
+__doc__ = "animelog by mdp\n options in order of evaluation:\n"
 static_flags = []
 preprocess_flags = []
 postprocess_flags = []
@@ -21,7 +21,7 @@ def add_docs():
         'play' : 'play the result(s) of the filter, and update the current watchers\' log with this',
         'title': 'filter fuzzily by title(s), handles multiple titles in an OR-wise fashion',
         'db-alias' : 'add an alias for a show for retrieving airing data, supply "" second argument to remove alias, select which title with -t ',
-        'db-set-episodes': 'set the number of episodes a show, if they cannot be retrieved automatically',
+        'db-set-episodes': 'set the number of episodes a show, if they cannot be retrieved automatically, select which title with -t',
         'finish' : 'move supplied show from current watchers\' active log to their finished log',
         'simulate': 'parse a filename and outputs how it would be named in log',
         'date' : 'output the next airing date of shows in filter',
@@ -33,7 +33,7 @@ def add_docs():
         'episode': 'when outputting, only display show title and episode number',
         'finished':'print finished shows'
     }
-    for flag in itertools.chain(preprocess_flags, static_flags):
+    for flag in itertools.chain(preprocess_flags, static_flags, postprocess_flags):
         try:
             '''we pop here, because outputting the same line twice
             in the case of "linkage" (such as animelog.stream_find_file and animelog.play_from_stream)
@@ -44,7 +44,7 @@ def add_docs():
         except KeyError:
             continue
     #animelog.__doc__ = ''' animelog by mdp\n'''
-    for flag in filter(lambda x: any(x[1][1]) and getattr(x[0], '__doc__'), itertools.chain(preprocess_flags, static_flags)):
+    for flag in filter(lambda x: any(x[1][1]) and getattr(x[0], '__doc__'), itertools.chain(preprocess_flags, static_flags, postprocess_flags)):
         short_command = "-{1[0]}{args}, " if flag[1][0] else ""
         long_command = "--{1[1]}{args}  "
         explanation = ": {0.__doc__:20}\n"
@@ -56,16 +56,11 @@ def add_docs():
             animelog.errprint(flag)
 
         
-def alias_add_or_remove(userin):
-    print(userin)
-    if len(userin) > 1:
-        animelog.add_alias(userin[0], userin[1])
-    else:
-        animelog.remove_alias(userin[0])
-    
 
 def create_preprocess_flags():
     preprocess_flags = [
+        (animelog.print_short_help, ('h', ''), False),
+        (animelog.print_long_help, ('','help'), False),
         (animelog.set_current_watchers, ('s', 'set'), True),
         (animelog.watchers_filter_to_current,
         ("c", "current"), False),
