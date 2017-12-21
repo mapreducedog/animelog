@@ -197,8 +197,8 @@ def log_anime(title, watchers):
         return
     try:
         if (title, ep_nr) in database_reader.get_total_episodes([title]):
-            drop_title(title, watchers)
-            add_to_finished(title, watchers)
+            drop_title(title, watchers, save = True)
+            #add_to_finished(title, watchers) TODO: something went wrong here, resulting in not being added in finihsed, 
             return
     except Exception as e: #REPLACE WITH requests.exceptions.ConnectionError!!!
         raise e
