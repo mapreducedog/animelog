@@ -1,0 +1,7 @@
+#ignore pycompiled 
+*.pyc
+#ignore json
+*.json
+#revert_logfile.py was just for personal accidentily
+revert_logfile.py
+*.kdev*
