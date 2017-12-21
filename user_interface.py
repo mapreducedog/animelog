@@ -5,6 +5,7 @@ import itertools
 __doc__ = "animelog by mdp\n"
 static_flags = []
 preprocess_flags = []
+postprocess_flags = []
 __filter_settings__ = {}
 def add_docs():
     global __doc__
@@ -12,14 +13,15 @@ def add_docs():
         'set' : 'set the current watchers to <arg>..',
         'current': 'filter by current watchers, handles multiple current watchers in AND-wise fashion',
         'watchers': 'filter by supplied watcher(s), handles multiple watchers in AND-wise fashion',
-        'update': 'retreive airing data for shows that are not yet in database',
-        'full-update': 'retrieve airing data for all shows are in any watcher\'s active log',
-        'minimize' : 'remove shows from database that are not in any watcher\'s active log',
+        'db-update': 'retreive airing data for shows that are not yet in database',
+        'db-full-update': 'retrieve airing data for all shows are in any watcher\'s active log',
+        'db-minimize' : 'remove shows from database that are not in any watcher\'s active log',
         'drop' : 'remove supplied show(s) from current watchers\' active log',
         'dropfuzzy': 'as --drop, except will match shownames partially',
         'play' : 'play the result(s) of the filter, and update the current watchers\' log with this',
         'title': 'filter fuzzily by title(s), handles multiple titles in an OR-wise fashion',
-        'alias' : 'add an alias for a show for retrieving airing data, add no second argument to remove alias ',
+        'db-alias' : 'add an alias for a show for retrieving airing data, supply "" second argument to remove alias, select which title with -t ',
+        'db-set-episodes': 'set the number of episodes a show, if they cannot be retrieved automatically',
         'finish' : 'move supplied show from current watchers\' active log to their finished log',
         'simulate': 'parse a filename and outputs how it would be named in log',
         'date' : 'output the next airing date of shows in filter',
@@ -70,11 +72,10 @@ def create_preprocess_flags():
         ((lambda userin: [animelog.drop_title(title, animelog.get_current_watchers()) for title in userin]), ('', 'drop'), True),
         ((lambda userin: [animelog.drop_fuzzy(title, animelog.get_current_watchers()) for title in userin]), ('', 'dropfuzzy'),True),
         ((lambda userin: [animelog.drop_title(title, animelog.get_current_watchers(), save = True) for title in userin]), ('', 'finish'),True),
-        ((lambda x: database_updater.minimize_database()), ('', 'minimize'), False),
-        ((lambda x: database_updater.partial_update_database()), ('U', 'update'), False),
-        ((lambda x: database_updater.full_update_database()), ('', 'full-update'), False),
+        ((lambda x: database_updater.minimize_database()), ('', 'db-minimize'), False),
+        ((lambda x: database_updater.partial_update_database()), ('U', 'db-update'), False),
+        ((lambda x: database_updater.full_update_database()), ('', 'db-full-update'), False),
         ((lambda titles: [print(animelog.parse_title(title)) for title in titles]), ('', 'simulate'), True),
-        (alias_add_or_remove, ('', 'alias'), True),
         ] 
     return preprocess_flags
 def create_static_flags():
@@ -90,13 +91,22 @@ def create_static_flags():
                  (animelog.stream_as_title_epnr, ('e', 'episode'), False),
                  (animelog.stream_find_file, ('p', 'play'), False),
                  (animelog.filter_by_lucky, ('L', 'lucky'), False),
-                 (animelog.play_from_stream, ('p', 'play'), False),
-                 (animelog.print_from_stream, ('', ''), False)
                 ]
     return static_flags
+
+def create_postprocess_flags():
+    postprocess_flags = [
+        (lambda stream: animelog.play_from_stream(stream, None), ('p', 'play'), False),
+        (animelog.add_alias_stream, ('', 'db-alias'), True),
+        
+        (lambda stream, args: database_updater.set_episodes_stream(stream, int("".join(args))), ('', 'db-set-episodes'), True),
+        (lambda stream: animelog.print_from_stream(stream, None), ('', ''), False),
+        ]
+    return postprocess_flags
     
 def initialize():
-    global static_flags, preprocess_flags, __filter_settings__
+    global static_flags, preprocess_flags,postprocess_flags, __filter_settings__
     static_flags = create_static_flags()
     preprocess_flags = create_preprocess_flags()
+    postprocess_flags = create_postprocess_flags()
     __filter_settings__ =  { item[0] : [] if item[2] else False for item in static_flags}

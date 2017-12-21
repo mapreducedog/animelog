@@ -104,9 +104,30 @@ def save_log(data):
         json.dump(data, fp, indent = 1)
     if __autocompletion__:
         update_autocompletion(get_current_watchers())
+        
+def assert_correct_arguments():
+    short_command_set, long_command_set = [filter(None, prep) + filter(None, stat) for prep, stat in zip(zip(*zip(*user_interface.static_flags)[1]),
+        zip(*zip(*
+                 (user_interface.preprocess_flags +  user_interface.postprocess_flags)
+                 )[1]))]
+        
+    long_args = map(lambda x: x[2:], filter(lambda x: x.startswith("--"), sys.argv) )
+    short_args = map(lambda x: x[1:],filter(lambda x:x.startswith("-") and not x.startswith("--"), sys.argv))
+    short_args = "".join(short_args)
+    unmatched_args = list(filter(lambda x: x not in short_command_set, short_args)) + filter(lambda x: x not in long_command_set, long_args)
+    if unmatched_args:
+        raise RuntimeError("Supplied invalid arguments: " + " ,".join(unmatched_args))
+        
+    
+    
+        
+    
 def update_autocompletion(watchers):
     shows = sorted(map(lambda x:x.replace(" ", "_") , currently_watching(watchers)))
-    short_command_set, long_command_set = [filter(None, prep) + filter(None, stat) for prep, stat in zip(zip(*zip(*user_interface.static_flags)[1]),zip(*zip(*user_interface.preprocess_flags)[1]))] 
+    short_command_set, long_command_set = [filter(None, prep) + filter(None, stat) for prep, stat in zip(zip(*zip(*user_interface.static_flags)[1]),
+        zip(*zip(*
+                 (user_interface.preprocess_flags +  user_interface.postprocess_flags)
+                 )[1]))] 
     short_command_set = [x for x in sorted(short_command_set)]
     long_command_set = ['--'+x for x in sorted(long_command_set)]
     
@@ -168,6 +189,14 @@ def add_to_finished(title, watchers):
     finished[title][watchers] = new_watchers
     save_finished(finished)
     
+    
+def add_alias_stream(stream, alias):
+    alias = " ".join(alias)
+    modify_alias = lambda title : add_alias(title, alias) if len(alias) else remove_alias
+    for title, values in stream:
+        modify_alias(title)
+    
+    
 def add_alias(title, alias):
     log = get_log()
     title, _ = parse_title(title, True)
@@ -209,7 +238,7 @@ def add_to_log(title, ep_nr, watchers):
     if title not in log:
         log[title] = {'watchers':{}}
     for watcher in watchers:
-        if (watcher not in log[title]) or (log[title][watcher] < ep_nr):
+        if (watcher not in log[title]['watchers']) or (log[title]['watchers'][watcher] < ep_nr):
             log[title]['watchers'][watcher] = ep_nr
     save_log(log)
     
@@ -373,6 +402,7 @@ def stream_find_file(stream, filterobj):
         else:
             values['filename'] = ''
             yield (title, values)
+            
 def stream_as_title_epnr(stream, filterobj):
     for item in stream:
         yield item[0], min(item[1]['watchers'].values())
@@ -468,9 +498,16 @@ def main():
         key = item[0]
         if not filterobj[key]:
             filterobj[key] = check_option(item[1][0], item[1][1], item[2])
+    
     if any(filterobj.values()):
-        filterobj[user_interface.animelog.print_from_stream] = not filterobj[user_interface.animelog.play_from_stream]
         stream = get_logstream(filterobj)
+        for action, options, arguments in user_interface.postprocess_flags:
+            return_value = check_option(options[0], options[1], arguments)
+            if return_value:
+                action(stream, return_value) if arguments else action(stream)
+                break
+        else:
+            print_from_stream(stream, filterobj)
     return filterobj
     #watchers = get_current_watchers()
     #log_anime(os.path.split(command)[-1], watchers)
@@ -484,4 +521,5 @@ def main():
 
 user_interface.initialize()
 if __name__ == '__main__':
+    assert_correct_arguments()
     a = main()

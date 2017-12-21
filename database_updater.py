@@ -143,6 +143,18 @@ def save_title_info(title, alias = None):
     else:
         global_database[title]['exclude'] = True
 
+def set_episodes(title, episodes):
+    global_database.setdefault(title, {})
+    global_database[title]['exclude'] = True
+    global_database[title]['total_episodes'] = episodes
+    global_database[title]['airing_status'] = 'finished airing'
+
+def set_episodes_stream(stream, episodes):
+    load_global_database()
+    for title, values in stream:
+        set_episodes(title, episodes)
+    save_global_database()
+    
 def minimize_database():
     global global_database
     load_global_database()
