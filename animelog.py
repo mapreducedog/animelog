@@ -71,7 +71,8 @@ def parse_title(title, skip_number = False):
         {'reg': r'(\s*-+\s*)(\d+)','ep_match':lambda found: int(found.group(2))}, #match John the Great - 05
         {'reg':r's(\d+)e(\d+)', 'ep_match':lambda found: (int(found.group(1)), int(found.group(2)))}, #match John the Great s01e05
         {'reg':r'ep\s*(\d+)',},#match John the Great ep01,
-        {'reg':r'e(\d+)', }#John the Great e01
+        {'reg':r'e(\d+)', }, #John the Great e01
+        {'reg':r'(\d+)x(\d+)', 'ep_match':lambda found: (int(found.group(1)), int(found.group(2)))} #John the Great 1x03
     ]
     
     for possible_match in itertools.imap(lambda kwargs: match_re(**kwargs), match_patterns):       
@@ -160,7 +161,7 @@ def update_autocompletion(watchers):
     elif [[ ${prev} == animelog ]] || [[ ${prev} == --simulate ]]; then
 	#we supply a filename here
         return 0
-    elif [[ ${prev} == -[^-]*s* ]] || [[ ${prev} == --set ]] || [[ ${prev} == -[^-]*w* ]] || [[ ${prev} == --watchers ]] ; then
+    elif  [[ ${prev} == -s* ]] || [[ ${prev} == -[^-]*s* ]] ||  [[ ${prev} == --set ]] || [[ ${prev} == -w ]] || [[ ${prev} == -^[-]*w* ]] || [[ ${prev} == --watchers ]] ; then
     	#supply a watcher
     	COMPREPLY=( $(compgen -W "${watchers}" -- ${cur}) )
         return 0
