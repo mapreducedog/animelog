@@ -539,7 +539,6 @@ def main():
         for action, options, arguments in user_interface.postprocess_flags:
             return_value = check_option(options[0], options[1], arguments)
             if return_value:
-                print(action)
                 if arguments:
                     action(stream, return_value)
                 else:
