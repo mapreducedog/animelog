@@ -1,4 +1,26 @@
 
+Flags:
+    animelog has four types of flags:
+    selection flags: (such as --title, --current, --airing, )
+         these specify what titles from the should be selected to perform actions on
+    mutator flags: (such as --episode, --next, --date)
+         these change change or add attributes to the current selection
+    action flags: (such as --play, --finish, --db-alias, implicit print) 
+         these perform actions with as input the selection after applying mutators.
+    
+    side-effect flags: (such as --set, --db-update, --help)
+         these perform actions for their side effect, and do not require a selection of titles
+    
+    a query tackes the general form of :
+   [<selection> ...] [<mutator> ...][<action>][<side-effect>]
+    that is to say
+    a query can consists of any combination any number of selection and mutator flag, an optionally one action flags and/or one side-effect flags (Note that the only useful side-effect flag in combination with an action flag is --set)
+    take for example the query "animelog --play --next --current --title 'Foobar Adventures'", 
+this has the selection flags : --current and --title, the mutator flag --next, and the action flag --play.
+    
+     if no side-effect flag or action flag has been declared, but a mutator or selection flag has, then the result of applying those specified flags will outputted to stdout.
+     
+
 
 addding aliases:
     if the name of a show as it exists in your log, is different from that in the remote database, you can add an alias.
@@ -15,10 +37,13 @@ shows not supplied by external database:
     If this is not what you want, you can add the number of episodes (in this example 45),
     of the title by using the --db-set-episodes flag as follows:
     animelog --title "Foobar Adventures" --db-set-episodes 45
-    
+ 
     this will put the show to "having all episodes aired" and thus always be displayed when you query with the -n flag.
     this will persist over full-updates, and the show will automatically finish when you watch the last episode.
-
+   
+    if the show your watching has season specification, you should do so as well when setting total number of episodes, you can use any 
+    format that is also parsed by --simulate e.g.
+    animelog --title "Foobar Adventures" --db-set-epsodes s03e12 
  
 managing the local database:
     animelog is designed to work even without internet, so rather than updating the local database of airing times whenever a new show is watched,
