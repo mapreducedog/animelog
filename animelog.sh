@@ -4,8 +4,8 @@ location=$(dirname $(realpath $0))
 
 if [ -f "$filename" ]
    then
-   python2 "$location"/"animelog.py" "$@" & disown
+   python2 -u "$location"/"animelog.py" "$@" & disown
    mpv --quiet "$filename"
 else
-    python2 "$location"/"animelog.py" "$@"
+    python2 -u "$location"/"animelog.py" "$@"
 fi
