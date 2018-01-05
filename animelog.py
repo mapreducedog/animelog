@@ -284,6 +284,35 @@ def drop_fuzzy(title, watchers, save = False):
     save_log(log)
     if not deleted_any:
         errprint("Couldn't {} {}, no matching title found".format("finish" if save else "drop", title))
+
+def finish_from_stream(stream):
+    drop_from_stream(stream, save = True)
+
+def drop_from_stream(stream, save = False):
+    deleted_any = False
+    log = get_log()
+    watchers = get_current_watchers()
+    if save:
+        finish_log = get_finished()
+    for item in stream:
+        title, values = item
+        if save:
+            finish_log.setdefault(title, {'watchers':[]})
+        for watcher in set(watchers) & set(log[title]['watchers']):
+            deleted_any = True
+            del log[title]['watchers'][watcher]
+            if save:
+                finish_log[title]['watchers'] = list(set(finish_log.get(title, {}).get('watchers', []) + [watcher]))
+        if not log[title]['watchers']:
+            del log[title]
+    
+    if save:
+        save_finished(finish_log)
+    save_log(log)
+    
+    if not deleted_any:
+        errprint("Did not {} any title, no matching title found".format("finish" if save else "drop"))
+
 def print_from_stream(stream, filterobj):
     for item in stream:
         title, values = item
@@ -340,6 +369,11 @@ def filter_by_titles(stream, filterobj):
     #if filterobj["filter_by_titles_strict"]:
     #   return itertools.ifilter(lambda x:x[0] in map(lambda x : parse_title(x, skip_number = True)[0],filterobj["filter_by_titles"]), stream)
         return itertools.ifilter(lambda x:any((True for title in filterobj[filter_by_titles] if parse_title(title, skip_number = True)[0] in x[0])), stream)
+
+def filter_by_titles_exact(stream, filterobj):
+    passed_titles = map(lambda x : parse_title(x, skip_number = True)[0],filterobj[filter_by_titles_exact])
+    return itertools.ifilter(lambda x:x[0] in passed_titles, stream)
+
 def filter_by_watchers(stream, filterobj):
     def matches(x):
         return set(x[1]['watchers']) == set(filterobj[filter_by_watchers])
@@ -501,11 +535,15 @@ def main():
             filterobj[key] = check_option(item[1][0], item[1][1], item[2])
     
     if any(filterobj.values()):
-        stream = get_logstream(filterobj)
+        stream = get_logstream(filterobj)        
         for action, options, arguments in user_interface.postprocess_flags:
             return_value = check_option(options[0], options[1], arguments)
             if return_value:
-                action(stream, return_value) if arguments else action(stream)
+                print(action)
+                if arguments:
+                    action(stream, return_value)
+                else:
+                    action(stream)
                 break
         else:
             print_from_stream(stream, filterobj)

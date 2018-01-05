@@ -11,25 +11,25 @@ def add_docs():
     global __doc__
     short_docs = {
         'set' : 'set the current watchers to <arg>..',
-        'current': 'filter by current watchers, handles multiple current watchers in AND-wise fashion',
-        'watchers': 'filter by supplied watcher(s), handles multiple watchers in AND-wise fashion',
+        'current': 'select by current watchers, handles multiple current watchers in AND-wise fashion',
+        'watchers': 'select by supplied watcher(s), handles multiple watchers in AND-wise fashion',
         'db-update': 'retreive airing data for shows that are not yet in database',
         'db-full-update': 'retrieve airing data for all shows are in any watcher\'s active log',
         'db-minimize' : 'remove shows from database that are not in any watcher\'s active log',
-        'drop' : 'remove supplied show(s) from current watchers\' active log',
-        'dropfuzzy': 'as --drop, except will match shownames partially',
+        'drop' : 'remove selected titles from current watchers\' active log, select which title with -t / -x',
         'play' : 'play the result(s) of the filter, and update the current watchers\' log with this',
-        'title': 'filter fuzzily by title(s), handles multiple titles in an OR-wise fashion',
-        'db-alias' : 'add an alias for a show for retrieving airing data, supply "" second argument to remove alias, select which title with -t ',
-        'db-set-episodes': 'set the number of episodes a show, if they cannot be retrieved automatically, select which title with -t',
-        'finish' : 'move supplied show from current watchers\' active log to their finished log',
+        'title': 'select fuzzily by title(s), handles multiple titles in an OR-wise fashion',
+        'title-exact': 'as -t, except matches titles exactly',
+        'db-alias' : 'add an alias for a show for retrieving airing data, supply "" second argument to remove alias, select which title with -t / -x ',
+        'db-set-episodes': 'set the number of episodes a show, if they cannot be retrieved automatically, select which title with -t / -x',
+        'finish' : 'move selected titles from current watchers\' active log to their finished log, select which title with -t / -x',
         'simulate': 'parse a filename and outputs how it would be named in log',
-        'date' : 'output the next airing date of shows in filter',
-        'next': 'change episode numbers in filter to the next episode',
-        'lucky' : 'select a random show out of filter (that has a file that can be played)',
+        'date' : 'output the next airing date of shows in selection',
+        'next': 'change episode numbers in selection to the next episode',
+        'lucky' : 'select a random show out of selection (that has a file that can be played)',
         'latest' : 'change episode numbers in filter to the most recently aired episode',
-        'airing' : 'filter episodes by currently airing shows',
-        'unwatched': 'filter by shows that have unwatched aired episodes',
+        'airing' : 'select currently airing shows',
+        'unwatched': 'select shows that have unwatched aired episodes',
         'episode': 'when outputting, only display show title and episode number',
         'finished':'print finished shows'
     }
@@ -64,9 +64,6 @@ def create_preprocess_flags():
         (animelog.set_current_watchers, ('s', 'set'), True),
         (animelog.watchers_filter_to_current,
         ("c", "current"), False),
-        ((lambda userin: [animelog.drop_title(title, animelog.get_current_watchers()) for title in userin]), ('', 'drop'), True),
-        ((lambda userin: [animelog.drop_fuzzy(title, animelog.get_current_watchers()) for title in userin]), ('', 'dropfuzzy'),True),
-        ((lambda userin: [animelog.drop_title(title, animelog.get_current_watchers(), save = True) for title in userin]), ('', 'finish'),True),
         ((lambda x: database_updater.minimize_database()), ('', 'db-minimize'), False),
         ((lambda x: database_updater.partial_update_database()), ('U', 'db-update'), False),
         ((lambda x: database_updater.full_update_database()), ('', 'db-full-update'), False),
@@ -77,6 +74,7 @@ def create_static_flags():
     static_flags =  [
                  (animelog.get_finished_stream,('', 'finished'),False),
                  (animelog.filter_by_titles, ('t', 'title'), True),
+                 (animelog.filter_by_titles_exact, ('x', 'title-exact'), True),
                  (animelog.filter_by_watchers, ('w', 'watchers'), True),
                  (animelog.filter_by_airing, ('a', 'airing'), False),
                  (animelog.filter_by_unwatched_aired, ('u', 'unwatched'), False),
@@ -89,12 +87,19 @@ def create_static_flags():
                 ]
     return static_flags
 
+
+def parse_episode_nr(inlist):
+    return animelog.parse_title("blabla " + "".join(inlist))[1]
+    
+        
+
 def create_postprocess_flags():
     postprocess_flags = [
         (lambda stream: animelog.play_from_stream(stream, None), ('p', 'play'), False),
+        (animelog.drop_from_stream, ('', 'drop'), False),
+        (animelog.finish_from_stream, ('', 'finish'), False),
+        (lambda stream, args: database_updater.set_episodes_stream(stream, parse_episode_nr(args)), ('', 'db-set-episodes'), True),
         (animelog.add_alias_stream, ('', 'db-alias'), True),
-        
-        (lambda stream, args: database_updater.set_episodes_stream(stream, int("".join(args))), ('', 'db-set-episodes'), True),
         (lambda stream: animelog.print_from_stream(stream, None), ('', ''), False),
         ]
     return postprocess_flags
