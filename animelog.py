@@ -27,6 +27,12 @@ def successor(ep):
         return ep + 1
     if hasattr(ep, '__iter__'):
         return ep[:-1] + [ep[-1] + 1]
+    
+def predecessor(ep):
+    if isinstance(ep,int):
+        return ep - 1
+    if hasattr(ep, '__iter__'):
+        return ep[:-1] + [ep[-1] - 1]
 def set_current_watchers(watchers):
     '''set the current watchers to the supplied watchers'''
     settings = get_settings()
@@ -233,6 +239,10 @@ def log_anime(title, watchers):
     except Exception as e: #REPLACE WITH requests.exceptions.ConnectionError!!!
         raise e
     add_to_log(title, ep_nr, watchers)
+def add_to_log_from_stream(stream):
+    for item in stream:
+        title, value = item
+        add_to_log(title, min(value['watchers'].values()), value['watchers'].keys())
 
 def add_to_log(title, ep_nr, watchers):
     log = get_log()
@@ -365,10 +375,12 @@ def get_finished_stream(stream, filterobj):
     for item in finished_log.iteritems():
         yield item
 
+def get_future_stream(stream, filterobj):
+    for title in filterobj[filter_by_titles] + filterobj[filter_by_titles_exact]:
+        yield parse_title(title, skip_number = True)[0], {'watchers' : {watcher : 0 for watcher in filterobj[filter_by_watchers] or get_current_watchers()}} 
+
 def filter_by_titles(stream, filterobj):
-    #if filterobj["filter_by_titles_strict"]:
-    #   return itertools.ifilter(lambda x:x[0] in map(lambda x : parse_title(x, skip_number = True)[0],filterobj["filter_by_titles"]), stream)
-        return itertools.ifilter(lambda x:any((True for title in filterobj[filter_by_titles] if parse_title(title, skip_number = True)[0] in x[0])), stream)
+    return itertools.ifilter(lambda x:any((True for title in filterobj[filter_by_titles] if parse_title(title, skip_number = True)[0] in x[0])), stream)
 
 def filter_by_titles_exact(stream, filterobj):
     passed_titles = map(lambda x : parse_title(x, skip_number = True)[0],filterobj[filter_by_titles_exact])
@@ -406,6 +418,14 @@ def stream_as_successor(stream, filterobj):
         right_item = item[1].copy()
         right_item['watchers'] = {watcher: successor(episode) for watcher, episode in watchers.iteritems()}
         yield (title, right_item)
+
+def stream_as_predecessor(stream, filterobj):
+    for item in stream:
+        title, watchers = item[0], item[1]['watchers']
+        right_item = item[1].copy()
+        right_item['watchers'] = {watcher: predecessor(episode) for watcher, episode in watchers.iteritems()}
+        yield (title, right_item)
+
 def stream_as_latest_unwatched(stream, filterobj):
     for item in stream:
         title, watchers_eps = item[0], item[1]['watchers']
