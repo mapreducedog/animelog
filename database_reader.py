@@ -79,7 +79,7 @@ def get_next_airing_time_single(title):
             if date > curtime:
                 return int(ep_nr), date
     model = find_by_title(title)
-    if not model or model.get('airing_status', '') != 'currently airing':
+    if not model or model.get('airing_status', '') not in {'currently airing', 'not yet aired'}:
         return None
     return most_recent(model.get('airing_data', {}))
 
@@ -91,7 +91,7 @@ def get_next_airing_times(titles):
                 return int(ep_nr), date
             
     for title, model in get_models(titles):
-        if model.get('airing_status', '') != 'currently airing':
+        if model.get('airing_status', '') not in  {'currently airing', 'not yet aired'} or not model.get('airing_data', False) :
             continue
         yield (title,) + most_recent(model['airing_data'])
         
