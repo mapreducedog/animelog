@@ -26,15 +26,16 @@ def add_docs():
         'simulate': 'parse a filename and outputs how it would be named in log',
         'date' : 'output the next airing date of shows in selection',
         'next': 'change episode numbers in selection to the next episode',
+        'previous': 'opposite of next',
         'lucky' : 'select a random show out of selection (that has a file that can be played)',
-        'latest' : 'change episode numbers in filter to the most recently aired episode',
+        'latest' : 'change episode numbers in selection to the most recently aired episode',
         'airing' : 'select currently airing shows',
         'unwatched': 'select shows that have unwatched aired episodes',
         'episode': 'when outputting, only display show title and episode number',
         'finished':'print finished shows',
-        'backlog':'adds a show at episode 0, so that it will be in the log with no episodes watched.'
+        'backlog':'specify show (-t/-x) to add to current watchers (or supplied -w) with no episodes watched'
     }
-    for flag in itertools.chain(preprocess_flags, static_flags, postprocess_flags):
+    for flag in itertools.chain(postprocess_flags,static_flags,preprocess_flags):
         try:
             '''we pop here, because outputting the same line twice
             in the case of "linkage" (such as animelog.stream_find_file and animelog.play_from_stream)
@@ -65,9 +66,6 @@ def create_preprocess_flags():
         (animelog.set_current_watchers, ('s', 'set'), True),
         (animelog.watchers_filter_to_current,
         ("c", "current"), False),
-        (lambda titles: 
-             map(lambda title: animelog.add_to_log(animelog.parse_title(title, skip_number = True)[0], 0, animelog.get_current_watchers()), titles),
-             ('', 'backlog'), True),
         ((lambda x: database_updater.minimize_database()), ('', 'db-minimize'), False),
         ((lambda x: database_updater.partial_update_database()), ('U', 'db-update'), False),
         ((lambda x: database_updater.full_update_database()), ('', 'db-full-update'), False),
@@ -77,12 +75,14 @@ def create_preprocess_flags():
 def create_static_flags():
     static_flags =  [
                  (animelog.get_finished_stream,('', 'finished'),False),
+                 (animelog.get_future_stream, ('b', 'backlog'), False),
                  (animelog.filter_by_titles, ('t', 'title'), True),
                  (animelog.filter_by_titles_exact, ('x', 'title-exact'), True),
                  (animelog.filter_by_watchers, ('w', 'watchers'), True),
                  (animelog.filter_by_airing, ('a', 'airing'), False),
                  (animelog.filter_by_unwatched_aired, ('u', 'unwatched'), False),
                  (animelog.stream_as_successor, ('n', 'next'), False),
+                 (animelog.stream_as_predecessor, ('r', 'previous'), False),
                  (animelog.stream_as_latest_unwatched, ('l', 'latest'), False),
                  (animelog.stream_find_next_airdate, ('d', 'date'), False),
                  (animelog.stream_as_title_epnr, ('e', 'episode'), False),
@@ -99,6 +99,7 @@ def parse_episode_nr(inlist):
 
 def create_postprocess_flags():
     postprocess_flags = [
+        (animelog.add_to_log_from_stream, ('b', 'backlog'), False),
         (lambda stream: animelog.play_from_stream(stream, None), ('p', 'play'), False),
         (animelog.drop_from_stream, ('', 'drop'), False),
         (animelog.finish_from_stream, ('', 'finish'), False),
