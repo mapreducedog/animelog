@@ -117,7 +117,7 @@ def assert_correct_arguments():
     short_args = "".join(short_args)
     unmatched_args = list(filter(lambda x: x not in short_command_set, short_args)) + filter(lambda x: x not in long_command_set, long_args)
     if unmatched_args:
-        raise RuntimeError("Supplied invalid arguments: " + " ,".join(unmatched_args))
+        raise RuntimeError("Supplied invalid argument{}: ".format("s" if len(unmatched_args) > 1 else "") + ", ".join(unmatched_args))
         
     
     

@@ -31,7 +31,8 @@ def add_docs():
         'airing' : 'select currently airing shows',
         'unwatched': 'select shows that have unwatched aired episodes',
         'episode': 'when outputting, only display show title and episode number',
-        'finished':'print finished shows'
+        'finished':'print finished shows',
+        'backlog':'adds a show at episode 0, so that it will be in the log with no episodes watched.'
     }
     for flag in itertools.chain(preprocess_flags, static_flags, postprocess_flags):
         try:
@@ -64,6 +65,9 @@ def create_preprocess_flags():
         (animelog.set_current_watchers, ('s', 'set'), True),
         (animelog.watchers_filter_to_current,
         ("c", "current"), False),
+        (lambda titles: 
+             map(lambda title: animelog.add_to_log(animelog.parse_title(title, skip_number = True)[0], 0, animelog.get_current_watchers()), titles),
+             ('', 'backlog'), True),
         ((lambda x: database_updater.minimize_database()), ('', 'db-minimize'), False),
         ((lambda x: database_updater.partial_update_database()), ('U', 'db-update'), False),
         ((lambda x: database_updater.full_update_database()), ('', 'db-full-update'), False),
@@ -89,7 +93,7 @@ def create_static_flags():
 
 
 def parse_episode_nr(inlist):
-    return animelog.parse_title("blabla " + "".join(inlist))[1]
+    return animelog.parse_title("blabla " + " ".join(inlist))[1]
     
         
 
