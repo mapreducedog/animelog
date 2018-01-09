@@ -228,6 +228,9 @@ def remove_alias(title):
             save_log(log)
 def log_anime(title, watchers):
     title, ep_nr = parse_title(title)
+    __log_anime__(title, ep_nr, watchers)
+
+def __log_anime__(title, ep_nr, watchers):
     if ep_nr is None: #its a stand-alone film
         add_to_finished(title, watchers)
         return
@@ -239,10 +242,11 @@ def log_anime(title, watchers):
     except Exception as e: #REPLACE WITH requests.exceptions.ConnectionError!!!
         raise e
     add_to_log(title, ep_nr, watchers)
-def add_to_log_from_stream(stream):
+
+def log_anime_from_stream(stream):
     for item in stream:
         title, value = item
-        add_to_log(title, min(value['watchers'].values()), value['watchers'].keys())
+        __log_anime__(title, min(value['watchers'].values()), value['watchers'].keys())
 
 def add_to_log(title, ep_nr, watchers):
     log = get_log()
