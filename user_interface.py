@@ -18,6 +18,7 @@ def add_docs():
         'db-minimize' : 'remove shows from database that are not in any watcher\'s active log',
         'drop' : 'remove selected titles from current watchers\' active log, select which title with -t / -x',
         'play' : 'play the result(s) of the filter, and update the current watchers\' log with this',
+        'record': 'as play, except doesnt search for files and play them (so for record-keeping)',
         'title': 'select fuzzily by title(s), handles multiple titles in an OR-wise fashion',
         'title-exact': 'as -t, except matches titles exactly',
         'db-alias' : 'add an alias for a show for retrieving airing data, supply "" second argument to remove alias, select which title with -t / -x ',
@@ -99,8 +100,9 @@ def parse_episode_nr(inlist):
 
 def create_postprocess_flags():
     postprocess_flags = [
-        (animelog.add_to_log_from_stream, ('b', 'backlog'), False),
+        (animelog.log_anime_from_stream, ('b', 'backlog'), False),
         (lambda stream: animelog.play_from_stream(stream, None), ('p', 'play'), False),
+        (animelog.log_anime_from_stream, ('R', 'record'), False),
         (animelog.drop_from_stream, ('', 'drop'), False),
         (animelog.finish_from_stream, ('', 'finish'), False),
         (lambda stream, args: database_updater.set_episodes_stream(stream, parse_episode_nr(args)), ('', 'db-set-episodes'), True),
