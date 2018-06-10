@@ -92,3 +92,8 @@ examples:
         sequentially play the next episode of all shows the current watchers are watching 
         (if the files are on the machine ofcourse). 
     
+Warnings: 
+    be careful with --drop/--finish, as it will drop/finish everything in the selection from the current watchers, as long as at least selection criteria has been specified. 
+    so --drop --current will drop all shows that would otherwise be displayed by "--current"
+    if you want to test, use the selection commands without --drop, and see if you're happy with the selection. 
+

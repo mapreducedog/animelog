@@ -100,7 +100,8 @@ def parse_episode_nr(inlist):
 
 def create_postprocess_flags():
     postprocess_flags = [
-        (animelog.log_anime_from_stream, ('b', 'backlog'), False),
+        #we make an anonymous function here, so that docs can be added seperately
+        (lambda stream: animelog.log_anime_from_stream(stream), ('b', 'backlog'), False),
         (lambda stream: animelog.play_from_stream(stream, None), ('p', 'play'), False),
         (animelog.log_anime_from_stream, ('R', 'record'), False),
         (animelog.drop_from_stream, ('', 'drop'), False),

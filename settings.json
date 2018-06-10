@@ -1,0 +1,13 @@
+{
+ "video_path": "/home/user/Videos/", 
+ "client": {
+  "secret": "YourSecret", 
+  "id": "YourID", 
+  "name": "YourName", 
+  "uri": "YourUri"
+ }, 
+ "recursive_depth": 3, 
+ "current_watchers": [
+  "YourName"
+ ]
+}

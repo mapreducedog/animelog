@@ -59,6 +59,14 @@ def parse_title(title, skip_number = False):
         return ti_match(title, found).strip(), ep_match(found)
     title = os.path.basename(title)
     title = title.lower()
+    #replace non-ascii characters by space
+    #title = title.decode('utf-8','replace').encode('ascii', 'replace').replace('?',' ')
+    if isinstance(title, unicode):
+        title = title.encode('ascii', 'replace').replace('?',' ')
+    else:
+        title = title.decode('ascii', 'replace')
+        title = re.sub(u'\ufffd+', ' ',title)
+         
     if os.path.splitext(title)[-1] == '.part':
         title = os.path.splitext(title)[0]
     if '.' in title:
@@ -471,9 +479,9 @@ def play_from_stream(stream, filterobj):
     for title, values in stream:
         played_any = True
         if values.get('filename'):
-            os.system('{} {}'.format(batfiledir, values['filename']))
+            os.system(u'{} {}'.format(batfiledir, values['filename']))
         else:
-            errprint("{} episode {} not found on drive".format(title, min(values['watchers'].values())))
+            errprint(u"{} episode {} not found on drive".format(title, min(values['watchers'].values())))
     if not played_any:
         errprint("Did not find anything to play")
 def play_single_item(title, episode):
