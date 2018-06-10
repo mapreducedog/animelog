@@ -22,7 +22,6 @@ class Stream(object):
             function = item[0]
             if filterobj[function]:
                 stream = function(stream, filterobj)
-                    #stream = reduce((lambda stream, key_func: check_stream(key_func[1](stream, filterobj), key_func[0]) if filterobj[key_func[0]] else stream),key_func_pairs, this_stream)
 
         return stream
 

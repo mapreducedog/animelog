@@ -196,7 +196,7 @@ def add_to_finished(title, watchers):
 
 def add_alias_stream(stream, alias):
     alias = " ".join(alias)
-    modify_alias = lambda title : add_alias(title, alias) if len(alias) else remove_alias
+    modify_alias = remove_alias if not alias else lambda title : add_alias(title, alias)
     for title, values in stream:
         modify_alias(title)
 
@@ -331,11 +331,6 @@ def currently_watching(watchers):
     return (x[0] for x in Stream.create_logstream(filterobj))
 
 
-def check_stream(stream, name):
-    print(name)
-    for item in stream:
-        print(item)
-        yield item
 
 
 def print_short_help():
@@ -371,8 +366,6 @@ def check_option(short_option, long_option, return_arguments = False):
 
 def main():
     os.chdir(os.path.abspath(__file__).rpartition(os.path.sep)[0])
-    if len(sys.argv) > 1:
-        command = sys.argv[1]
 
     if len(sys.argv) == 1 or sys.argv[-1] in {'-h', '/?', ''}:
         print_short_help()
@@ -382,7 +375,8 @@ def main():
         return
     if not any(map(lambda x:x.startswith('-'), sys.argv[1:])):
         watchers = get_current_watchers()
-        log_anime(os.path.split(command)[-1], watchers)
+        filename = os.path.split(sys.argv[1])[-1]
+        log_anime(filename, watchers)
         return
 
     #we don't copy here, to give preprocess flags the ability to modify
