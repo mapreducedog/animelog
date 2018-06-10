@@ -1,5 +1,7 @@
 from __future__ import print_function
 import animelog
+from streamhandler import Stream
+from streamfilter import Filter
 import database_updater
 import itertools
 __doc__ = "animelog by mdp\n options in order of evaluation:\n"
@@ -43,7 +45,7 @@ def add_docs():
             would be confusing and silly
             we also filter flags with no commands this way
             '''
-            flag[0].__doc__ = short_docs.pop(flag[1][1]) 
+            flag[0].__doc__ = short_docs.pop(flag[1][1])
         except KeyError:
             continue
     #animelog.__doc__ = ''' animelog by mdp\n'''
@@ -58,60 +60,60 @@ def add_docs():
         except IndexError:
             animelog.errprint(flag)
 
-        
+
 
 def create_preprocess_flags():
     preprocess_flags = [
         (animelog.print_short_help, ('h', ''), False),
         (animelog.print_long_help, ('','help'), False),
         (animelog.set_current_watchers, ('s', 'set'), True),
-        (animelog.watchers_filter_to_current,
+        (Filter.apply_current_watchers,
         ("c", "current"), False),
         ((lambda x: database_updater.minimize_database()), ('', 'db-minimize'), False),
         ((lambda x: database_updater.partial_update_database()), ('U', 'db-update'), False),
         ((lambda x: database_updater.full_update_database()), ('', 'db-full-update'), False),
         ((lambda titles: [print(animelog.parse_title(title)) for title in titles]), ('', 'simulate'), True),
-        ] 
+        ]
     return preprocess_flags
 def create_static_flags():
     static_flags =  [
-                 (animelog.get_finished_stream,('', 'finished'),False),
-                 (animelog.get_future_stream, ('b', 'backlog'), False),
-                 (animelog.filter_by_titles, ('t', 'title'), True),
-                 (animelog.filter_by_titles_exact, ('x', 'title-exact'), True),
-                 (animelog.filter_by_watchers, ('w', 'watchers'), True),
-                 (animelog.filter_by_airing, ('a', 'airing'), False),
-                 (animelog.filter_by_unwatched_aired, ('u', 'unwatched'), False),
-                 (animelog.stream_as_successor, ('n', 'next'), False),
-                 (animelog.stream_as_predecessor, ('r', 'previous'), False),
-                 (animelog.stream_as_latest_unwatched, ('l', 'latest'), False),
-                 (animelog.stream_find_next_airdate, ('d', 'date'), False),
-                 (animelog.stream_as_title_epnr, ('e', 'episode'), False),
-                 (animelog.stream_find_file, ('p', 'play'), False),
-                 (animelog.filter_by_lucky, ('L', 'lucky'), False),
+                 (Stream.create_finished_stream,('', 'finished'),False),
+                 (Stream.create_future_stream, ('b', 'backlog'), False),
+                 (Filter.title, ('t', 'title'), True),
+                 (Filter.title_exact, ('x', 'title-exact'), True),
+                 (Filter.watchers, ('w', 'watchers'), True),
+                 (Filter.airing, ('a', 'airing'), False),
+                 (Filter.unwatched_aired, ('u', 'unwatched'), False),
+                 (Stream.successor, ('n', 'next'), False),
+                 (Stream.predecessor, ('r', 'previous'), False),
+                 (Stream.latest_unwatched, ('l', 'latest'), False),
+                 (Stream.next_airdate, ('d', 'date'), False),
+                 (Stream.only_title_epnr, ('e', 'episode'), False),
+                 (Stream.file, ('p', 'play'), False),
+                 (Filter.lucky, ('L', 'lucky'), False),
                 ]
     return static_flags
 
 
 def parse_episode_nr(inlist):
     return animelog.parse_title("blabla " + " ".join(inlist))[1]
-    
-        
+
+
 
 def create_postprocess_flags():
     postprocess_flags = [
         #we make an anonymous function here, so that docs can be added seperately
         (lambda stream: animelog.log_anime_from_stream(stream), ('b', 'backlog'), False),
-        (lambda stream: animelog.play_from_stream(stream, None), ('p', 'play'), False),
+        (lambda stream: Stream.play(stream, None), ('p', 'play'), False),
         (animelog.log_anime_from_stream, ('R', 'record'), False),
         (animelog.drop_from_stream, ('', 'drop'), False),
         (animelog.finish_from_stream, ('', 'finish'), False),
         (lambda stream, args: database_updater.set_episodes_stream(stream, parse_episode_nr(args)), ('', 'db-set-episodes'), True),
         (animelog.add_alias_stream, ('', 'db-alias'), True),
-        (lambda stream: animelog.print_from_stream(stream, None), ('', ''), False),
+        (lambda stream: Stream.print_(stream, None), ('', ''), False),
         ]
     return postprocess_flags
-    
+
 def initialize():
     global static_flags, preprocess_flags,postprocess_flags, __filter_settings__
     static_flags = create_static_flags()
